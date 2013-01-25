@@ -47,6 +47,9 @@ class MqlTestCase(TestCase):
     def test_in(self):
         self.assertEqual(self.parser.parse('a in [1, 2, 3]'), {'a': {'$in': [1, 2, 3]}})
 
+    def test_not_in(self):
+        self.assertEqual(self.parser.parse('a not in [1, 2, 3]'), {'a': {'$nin': [1, 2, 3]}})
+
     def test_missing_func(self):
         with self.assertRaises(ParseError) as context:
             self.parser.parse('a == foo()')

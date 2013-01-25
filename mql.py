@@ -14,7 +14,6 @@ SchemaAwareOperatorMap
   1. verifies fields exist.
   2. verifies operators are applied to fields of correct type.
 
-
 currently unsupported:
 1. $where
 2. geospatial
@@ -58,7 +57,7 @@ class Parser(AstHandler):
         self._operator_map = operator_map
 
     def get_options(self):
-        return self._operand_map.get_options()
+        return self._operator_map.get_options()
         
     def parse(self, string):
         ex = ast.parse(string, mode='eval')
@@ -110,7 +109,7 @@ class FieldName(AstHandler):
 
 class OperatorMap(object):
     def get_options(self):
-        raise None
+        return None
 
     def handle(self, operator, left, right):
         raise NotImplementedError()
@@ -150,10 +149,10 @@ class Func(object):
         return handler(node)
     
     def handle_exists(self, node):
-        return {'$exists':  self.parse_arg(node, 0, BoolField())}
+        return {'$exists': self.parse_arg(node, 0, BoolField())}
 
     def handle_type(self, node):
-        return {'$type':  self.parse_arg(node, 0, IntField())}
+        return {'$type': self.parse_arg(node, 0, IntField())}
 
 class StringFunc(Func):
     def handle_regex(self, node):
@@ -170,7 +169,6 @@ class IntFunc(Func):
                          self.parse_arg(node, 1, IntField())]}
         
 class ListFunc(Func):
-    
     def handle_size(self, node):
         return {'$size': self.parse_arg(node, 0, IntField())}
 
@@ -180,10 +178,12 @@ class ListFunc(Func):
     def handle_match(self, node):
         return {'$elemMatch': self.parse_arg(node, 0, DictField())}
 
-class GenericFunc(StringFunc, IntFunc, ListFunc):
-
+class DateTimeFunc(Func):
     def handle_date(self, node):
         return parse_date(self.parse_arg(node, 0, StringField()))
+        
+class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc):
+    pass
 
 #---Field-Types---#
 
@@ -192,6 +192,8 @@ class Field(AstHandler):
         return self.resolve(operator)(right)
     def handle_In(self, right):
         return {'$in': map(self.handle, right.elts)}
+    def handle_NotIn(self, right):
+        return {'$nin': map(self.handle, right.elts)}
 
 class AlgebricField(Field):
     def handle_Eq(self, right):
@@ -240,6 +242,8 @@ class DictField(Field):
 class DateTimeField(Field):
     def handle_Str(self, node):
         return parse_date(node.s)
+    def handle_Call(self, node):
+        return DateTimeFunc().handle(node)
 
 class GenericField(IntField, BoolField, StringField, ListField, DictField):
     def handle_Call(self, node):
