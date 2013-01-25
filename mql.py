@@ -20,25 +20,42 @@ currently unsupported:
 """
 import ast
 from datetime import datetime
-def parse_date(string):
+FULL_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S,%f'
+DATE_AND_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+DATE_FORMAT = '%Y-%m-%d'
+DATETIME_FORMATS = [FULL_DATETIME_FORMAT,
+                    DATE_AND_TIME_FORMAT,
+                    DATE_FORMAT]
+def parse_date(node):
+    string = node.s
     try:
-        return datetime.strptime(string, "%Y-%m-%d %H:%M:%S,%f")
+        return datetime.strptime(string, FULL_DATETIME_FORMAT)
     except ValueError:
-        try:
-            return datetime.strptime(string, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            return datetime.strptime(string, "%Y-%m-%d")
+        pass
+    try:
+        return datetime.strptime(string, DATE_AND_TIME_FORMAT)
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(string, DATE_FORMAT)
+    except ValueError:
+        date_formats = ', '.join(DATETIME_FORMATS)
+        raise ParseError('Unexpected date format. options: {}'.format(date_formats),
+                         col_offset=node.col_offset,
+                         options=DATETIME_FORMATS)
 
 class AstHandler(object):
+
     def get_options(self):
-        return None
+        return [f.replace('handle_', '') for f in dir(self) if f.startswith('handle_')]
     
     def resolve(self, thing):
         thing_name = thing.__class__.__name__
         try:
             handler = getattr(self, 'handle_' + thing_name)
         except AttributeError:
-            raise ParseError('Unsupported syntax ({})'.format(thing_name),
+            raise ParseError('Unsupported syntax ({}), options: ({}).'.format(thing_name,
+                                                                              self.get_options()),
                              col_offset=thing.col_offset,
                              options=self.get_options())
         return handler
@@ -89,7 +106,11 @@ class Parser(AstHandler):
 class SchemaFreeParser(Parser):
     def __init__(self):
         super(SchemaFreeParser, self).__init__(SchemaFreeOperatorMap())
-        
+
+class SchemaAwareParser(Parser):
+    def __init__(self, *a, **k):
+        super(SchemaAwareParser, self).__init__(SchemaAwareOperatorMap(*a, **k))
+
 class FieldName(AstHandler):
     def __init__(self, fields=None):
         self._fields = fields
@@ -108,37 +129,41 @@ class FieldName(AstHandler):
         return '{}.{}'.format(self.handle(attr.value), attr.attr)
 
 class OperatorMap(object):
-    def get_options(self):
-        return None
 
     def handle(self, operator, left, right):
-        raise NotImplementedError()
+        field = self.resolve_field(left)
+        return {field: self.resolve_type(field).handle_operator_and_right(operator, right)}
 
 class SchemaFreeOperatorMap(OperatorMap):
-    def __init__(self):
-        self._field_handler = FieldName()
-        self._field_type = GenericField()
+    def get_options(self):
+        return None
+    def resolve_field(self, node):
+        return FieldName().handle(node)
+    def resolve_type(self, field):
+        return GenericField()
 
-    def handle(self, operator, left, right):
-        field = self._field_handler.handle(left)
-        return {field: self._field_type.handle_operator_and_right(operator, right)}
-
+class SchemaAwareOperatorMap(OperatorMap):
+    def __init__(self, field_to_type):
+        self._field_handler = FieldName(field_to_type.keys())
+        self._field_to_type = field_to_type
+    def resolve_field(self, node):
+        return self._field_handler.handle(node)
+    def resolve_type(self, field):
+        return self._field_to_type[field]
+        
 #---Function-Handlers---#
         
-class Func(object):
+class Func(AstHandler):
 
-    def parse_arg(self, node, index, field, default=None):
+    def get_arg(self, node, index):
         if index > len(node.args) - 1:
-            if default is None:
-                raise ParseError('Missing argument in {}'.format(node.func.id),
-                                 col_offset=node.col_offset)
-            else:
-                return default
-        return field.handle(node.args[index])
+            raise ParseError('Missing argument in {}'.format(node.func.id),
+                             col_offset=node.col_offset)
+        return node.args[index]
     
-    def get_options(self):
-        return [f.replace('handle_', '') for f in dir(self) if f.startswith('handle_')]
-    
+    def parse_arg(self, node, index, field):
+        return field.handle(self.get_arg(node, index))
+        
     def handle(self, node):
         try:
             handler = getattr(self, 'handle_' + node.func.id)
@@ -180,7 +205,7 @@ class ListFunc(Func):
 
 class DateTimeFunc(Func):
     def handle_date(self, node):
-        return parse_date(self.parse_arg(node, 0, StringField()))
+        return parse_date(self.get_arg(node, 0))
         
 class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc):
     pass
@@ -190,22 +215,29 @@ class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc):
 class Field(AstHandler):
     def handle_operator_and_right(self, operator, right):
         return self.resolve(operator)(right)
-    def handle_In(self, right):
-        return {'$in': map(self.handle, right.elts)}
-    def handle_NotIn(self, right):
-        return {'$nin': map(self.handle, right.elts)}
+    def handle_In(self, node):
+        '''in''' 
+        return {'$in': map(self.handle, node.elts)}
+    def handle_NotIn(self, node):
+        '''not in'''
+        return {'$nin': map(self.handle, node.elts)}
 
 class AlgebricField(Field):
-    def handle_Eq(self, right):
-        return self.handle(right)
-    def handle_Gt(self, right):
-        return {'$gt': self.handle(right)}
-    def handle_Lt(self,right):
-        return {'$lt': self.handle(right)}
-    def handle_GtE(self, right):
-        return {'$gte': self.handle(right)}
-    def handle_LtE(self, right):
-        return {'$lte': self.handle(right)}
+    def handle_Eq(self, node):
+        '''=='''
+        return self.handle(node)
+    def handle_Gt(self, node):
+        '''>'''
+        return {'$gt': self.handle(node)}
+    def handle_Lt(self,node):
+        '''<'''
+        return {'$lt': self.handle(node)}
+    def handle_GtE(self, node):
+        '''>='''
+        return {'$gte': self.handle(node)}
+    def handle_LtE(self, node):
+        '''<='''
+        return {'$lte': self.handle(node)}
 
 class StringField(AlgebricField):
     def handle_Str(self, node):
@@ -239,9 +271,9 @@ class DictField(Field):
         return {StringField().handle(key): PrimitiveField().handle(value)
                 for key, value in zip(node.keys, node.values)}
 
-class DateTimeField(Field):
+class DateTimeField(AlgebricField):
     def handle_Str(self, node):
-        return parse_date(node.s)
+        return parse_date(node)
     def handle_Call(self, node):
         return DateTimeFunc().handle(node)
 

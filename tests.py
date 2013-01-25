@@ -1,11 +1,11 @@
 from datetime import datetime
 from unittest import TestCase
-from mql import SchemaFreeParser, ParseError
+import mql
 
-class MqlTestCase(TestCase):
+class MqlSchemaLessTestCase(TestCase):
 
     def setUp(self):
-        self.parser = SchemaFreeParser()
+        self.parser = mql.SchemaFreeParser()
 
     def test_equal_int(self):
         self.assertEqual(self.parser.parse('a == 1'), {'a': 1})
@@ -51,7 +51,7 @@ class MqlTestCase(TestCase):
         self.assertEqual(self.parser.parse('a not in [1, 2, 3]'), {'a': {'$nin': [1, 2, 3]}})
 
     def test_missing_func(self):
-        with self.assertRaises(ParseError) as context:
+        with self.assertRaises(mql.ParseError) as context:
             self.parser.parse('a == foo()')
         self.assertIn('Unsupported function', str(context.exception))
 
@@ -83,3 +83,35 @@ class MqlTestCase(TestCase):
                          {'a': datetime(2012, 3, 4)})
         self.assertEqual(self.parser.parse('a == date("2012-3-4 12:34:56,123")'),
                          {'a': datetime(2012, 3, 4, 12, 34, 56, 123000)})
+
+class MqlSchemaAwareTestCase(TestCase):
+
+    def setUp(self):
+        self.parser = mql.SchemaAwareParser({'a': mql.IntField(),
+                                             'd': mql.DateTimeField()})
+
+    def test_sanity(self):
+        self.assertEqual(self.parser.parse('a == 3'), {'a': 3})
+
+    def test_invalid_field(self):
+        with self.assertRaises(mql.ParseError) as context:
+            self.parser.parse('b == 3')
+        self.assertEqual(context.exception.options, ['a', 'd'])
+
+    def test_type_error(self):
+        with self.assertRaises(mql.ParseError):
+            self.parser.parse('a == "foo"')
+
+    def test_invalid_function(self):
+        with self.assertRaises(mql.ParseError) as context:
+            self.parser.parse('a == size(3)')
+        self.assertIn('Unsupported function', str(context.exception))
+
+    def test_invalid_date(self):
+        with self.assertRaises(mql.ParseError) as context:
+            self.parser.parse('d == "foo"')
+        self.assertIn('Unexpected date format', str(context.exception))
+
+    def test_date(self):
+        self.assertEqual(self.parser.parse('d > "2012-03-02"'),
+                         {'d': {'$gt': datetime(2012, 3, 2)}})
