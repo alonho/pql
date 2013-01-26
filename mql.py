@@ -253,13 +253,17 @@ class BoolField(Field):
 class PrimitiveField(StringField, IntField, BoolField):
     pass
         
-class ListField(Field):
+class _ListField(Field):
     def __init__(self, field=PrimitiveField()):
         self._field = field
     def handle_List(self, node):
         return map(self._field.handle, node.elts)
     def handle_Call(self, node):
         return ListFunc().handle(node)
+def ListField(field=PrimitiveField()):
+    class ListField(_ListField, field.__class__):
+        pass
+    return ListField(field)
 
 class DictField(Field):
     def __init__(self, field=PrimitiveField()):
@@ -274,6 +278,6 @@ class DateTimeField(AlgebricField):
     def handle_Call(self, node):
         return DateTimeFunc().handle(node)
 
-class GenericField(IntField, BoolField, StringField, ListField, DictField):
+class GenericField(IntField, BoolField, StringField, _ListField, DictField):
     def handle_Call(self, node):
         return GenericFunc().handle(node)

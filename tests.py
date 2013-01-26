@@ -119,3 +119,4 @@ class MqlSchemaAwareTestCase(TestCase):
 
     def test_nested(self):
         self.assertEqual(self.parser.parse('foo.bar == ["spam"]'), {'foo.bar': ['spam']})
+        self.assertEqual(self.parser.parse('foo.bar == "spam"'), {'foo.bar': 'spam'})
