@@ -88,7 +88,8 @@ class MqlSchemaAwareTestCase(TestCase):
 
     def setUp(self):
         self.parser = mql.SchemaAwareParser({'a': mql.IntField(),
-                                             'd': mql.DateTimeField()})
+                                             'd': mql.DateTimeField(),
+                                             'foo.bar': mql.ListField(mql.StringField())})
 
     def test_sanity(self):
         self.assertEqual(self.parser.parse('a == 3'), {'a': 3})
@@ -96,7 +97,7 @@ class MqlSchemaAwareTestCase(TestCase):
     def test_invalid_field(self):
         with self.assertRaises(mql.ParseError) as context:
             self.parser.parse('b == 3')
-        self.assertEqual(context.exception.options, ['a', 'd'])
+        self.assertEqual(context.exception.options, ['a', 'd', 'foo.bar'])
 
     def test_type_error(self):
         with self.assertRaises(mql.ParseError):
@@ -115,3 +116,6 @@ class MqlSchemaAwareTestCase(TestCase):
     def test_date(self):
         self.assertEqual(self.parser.parse('d > "2012-03-02"'),
                          {'d': {'$gt': datetime(2012, 3, 2)}})
+
+    def test_nested(self):
+        self.assertEqual(self.parser.parse('foo.bar == ["spam"]'), {'foo.bar': ['spam']})

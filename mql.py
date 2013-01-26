@@ -111,25 +111,15 @@ class SchemaAwareParser(Parser):
     def __init__(self, *a, **k):
         super(SchemaAwareParser, self).__init__(SchemaAwareOperatorMap(*a, **k))
 
-class FieldName(AstHandler):
-    def __init__(self, fields=None):
-        self._fields = fields
-
-    def get_options(self):
-        return self._fields
-        
+class FieldName(AstHandler):        
     def handle_Name(self, name):
-        if self._fields is not None and name.id not in self._fields:
-            raise ParseError('Field not found: {}'.format(name.id),
-                             col_offset=name.col_offset,
-                             options=self.get_options())
         return name.id
-            
     def handle_Attribute(self, attr):
         return '{}.{}'.format(self.handle(attr.value), attr.attr)
 
 class OperatorMap(object):
-
+    def resolve_field(self, node):
+        return FieldName().handle(node)
     def handle(self, operator, left, right):
         field = self.resolve_field(left)
         return {field: self.resolve_type(field).handle_operator_and_right(operator, right)}
@@ -137,17 +127,20 @@ class OperatorMap(object):
 class SchemaFreeOperatorMap(OperatorMap):
     def get_options(self):
         return None
-    def resolve_field(self, node):
-        return FieldName().handle(node)
     def resolve_type(self, field):
         return GenericField()
 
 class SchemaAwareOperatorMap(OperatorMap):
     def __init__(self, field_to_type):
-        self._field_handler = FieldName(field_to_type.keys())
         self._field_to_type = field_to_type
     def resolve_field(self, node):
-        return self._field_handler.handle(node)
+        field = super(SchemaAwareOperatorMap, self).resolve_field(node)
+        if field not in self._field_to_type:
+            raise ParseError('Field not found: {}'.format(field),
+                             col_offset=node.col_offset,
+                             options=self._field_to_type.keys())
+        return field
+
     def resolve_type(self, field):
         return self._field_to_type[field]
         
@@ -221,11 +214,11 @@ class Field(AstHandler):
     def handle_NotIn(self, node):
         '''not in'''
         return {'$nin': map(self.handle, node.elts)}
-
-class AlgebricField(Field):
     def handle_Eq(self, node):
         '''=='''
         return self.handle(node)
+
+class AlgebricField(Field):
     def handle_Gt(self, node):
         '''>'''
         return {'$gt': self.handle(node)}
