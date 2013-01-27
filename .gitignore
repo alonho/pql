@@ -1,2 +1,5 @@
 .coverage
 *.pyc
+build
+dist
+mql.egg-info
