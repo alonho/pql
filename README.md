@@ -51,6 +51,9 @@ a == 1 and b == 2 | {'$and': [{'a': 1}, {'b': 2}]}
 
 Functions
 ---------
+
+mql | mongo
+--- | ---
 a == all([1, 2, 3]) | {'a': {'$all': [1, 2, 3]}}
 a == exists(True) | {'a': {'$exists': True}}
 a == match({"foo": "bar"}) | {'a': {'$elemMatch': {'foo': 'bar'}}}
