@@ -2,4 +2,4 @@
 *.pyc
 build
 dist
-mql.egg-info
+pql.egg-info

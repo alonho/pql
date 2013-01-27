@@ -1,11 +1,11 @@
 from setuptools import setup
 
-setup(name='mql',
+setup(name='pql',
       version='0.0.1',
       description='A python expression to MongoDB query translator',
       author='Alon Horev',
       author_email='alon@horev.net',
-      url='https://github.com/alonho/mql',
+      url='https://github.com/alonho/pql',
       classifiers = ["Development Status :: 3 - Alpha",
                      "Intended Audience :: Developers",
                      "Programming Language :: Python :: 2.6",
@@ -14,4 +14,4 @@ setup(name='mql',
                      "Operating System :: POSIX :: Linux",
                      "Operating System :: MacOS :: MacOS X"],
       license='BSD',
-      py_modules=['mql'])
+      py_modules=['pql'])

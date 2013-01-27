@@ -1,20 +1,20 @@
 ===
-MQL
+PQL
 ===
 
-MQL stands for MongoDB-Query-Language. MQL translates python expressions to **MongoDB** queries.
+PQL stands for Python-Query-Language. PQL translates python expressions to **MongoDB** queries.
 
-MQL uses the builtin python **ast** module for parsing and analysis of python expressions.
+PQL uses the builtin python **ast** module for parsing and analysis of python expressions.
 
-MQL is resilient to code injections as it doesn't evaluate the code.
+PQL is resilient to code injections as it doesn't evaluate the code.
 
 Installation
 ============
 
-	pip install mql
+	pip install pql
 	
 Follow **@alonhorev** on **twitter** for updates.
-Source located at: http://github.com/alonho/mql
+Source located at: http://github.com/alonho/pql
 
 Usage
 =====
@@ -24,8 +24,8 @@ Schema-Free Example
 
 The schema-free parser converts python expressions to mongodb queries with no schema enforcment:
 
-	>>> import mql
-	>>> parser = mql.SchemaFreeParser()
+	>>> import pql
+	>>> parser = pql.SchemaFreeParser()
 	>>> parser.parse("a > 1 and b == 'foo' or not c.d == False")
 	{'$or': [{'$and': [{'a': {'$gt': 1}}, {'b': 'foo'}]}, {'$not': {'c.d': False}}]}
 
@@ -34,31 +34,31 @@ Schema-Aware Example
 
 The schema-aware parser validates fields exist:
 
-	>>> import mql
-	>>> parser = mql.SchemaAwareParser({'a': mql.DateTimeField()})
+	>>> import pql
+	>>> parser = pql.SchemaAwareParser({'a': pql.DateTimeField()})
 	>>> parser.parse('b == 1') 
 	Traceback (most recent call last):
 		...
-	mql.ParseError: Field not found: b. options: ['a']
+	pql.ParseError: Field not found: b. options: ['a']
 	
 Validates values are of the correct type:
 
 	>>> parser.parse('a == 1')
 	Traceback (most recent call last):
 		...
-	mql.ParseError: Unsupported syntax (Num).
+	pql.ParseError: Unsupported syntax (Num).
 	
 Validates functions are called against the appropriate types:
 
 	>>> parser.parse('a == regex("foo")')
 	Traceback (most recent call last):
 		...
-	mql.ParseError: Unsupported function (regex). options: ['date', 'exists', 'type']
+	pql.ParseError: Unsupported function (regex). options: ['date', 'exists', 'type']
 	
 Data Types
 ----------
 
-mql | mongo
+pql | mongo
 --- | ---
 a == 1 | {'a': 1}
 a == "foo" | {'a': 'foo'}
@@ -73,7 +73,7 @@ a == date("2012-3-4 12:34:56,123") | {'a': datetime.datetime(2012, 3, 4, 12, 34,
 Operators
 ---------
 
-mql | mongo
+pql | mongo
 --- | ---
 a > 1 | {'a': {'$gt': 1}}
 a >= 1 | {'a': {'$gte': 1}}
@@ -85,7 +85,7 @@ a not in [1, 2, 3] | {'a': {'$nin': [1, 2, 3]}}
 Boolean Logic
 -------------
 
-mql | mongo
+pql | mongo
 --- | ---
 not a == 1 | {'$not': {'a': 1}}
 a == 1 or b == 2 | {'$or': [{'a': 1}, {'b': 2}]}
@@ -94,7 +94,7 @@ a == 1 and b == 2 | {'$and': [{'a': 1}, {'b': 2}]}
 Functions
 ---------
 
-mql | mongo
+pql | mongo
 --- | ---
 a == all([1, 2, 3]) | {'a': {'$all': [1, 2, 3]}}
 a == exists(True) | {'a': {'$exists': True}}
