@@ -5,14 +5,43 @@ MQL
 Usage
 =====
 
-Example
--------
+Schema-Free Example
+-------------------
+
+The schema-free parser converts python expressions to mongodb queries with no schema enforcment.
+This parser fits most use cases.
 
 	>>> import mql
 	>>> parser = mql.SchemaFreeParser()
 	>>> parser.parse("a > 1 and b == 'foo' or not c.d == False")
 	{'$or': [{'$and': [{'a': {'$gt': 1}}, {'b': 'foo'}]}, {'$not': {'c.d': False}}]}
+
+Schema-Aware Example
+--------------------
+
+The schema-aware parser validates fields exist:
+
+	>>> import mql
+	>>> parser = mql.SchemaAwareParser({'a': mql.DateTimeField()})
+	>>> parser.parse('b == 1') 
+	Traceback (most recent call last):
+		...
+	mql.ParseError: Field not found: b. options: ['a']
 	
+Validates values are of the correct type:
+
+	>>> parser.parse('a == 1')
+	Traceback (most recent call last):
+		...
+	mql.ParseError: Unsupported syntax (Num).
+	
+Validates functions are called against the appropriate types:
+
+	>>> parser.parse('a == regex("foo")')
+	Traceback (most recent call last):
+		...
+	mql.ParseError: Unsupported function (regex). options: ['date', 'exists', 'type']
+
 Data Types
 ----------
 
@@ -62,3 +91,10 @@ a == regex("foo") | {'a': {'$regex': 'foo'}}
 a == regex("foo", "i") | {'a': {'$options': 'i', '$regex': 'foo'}}
 a == size(4) | {'a': {'$size': 4}}
 a == type(3) | {'a': {'$type': 3}}
+
+TODO
+====
+
+1. Generate a schema from a *mongoengine*/*mongokit* class.
+2. Add support for geospatial queries.
+3. Add support for $where.

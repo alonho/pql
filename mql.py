@@ -33,7 +33,7 @@ def parse_date(node):
             return datetime.strptime(string, datetime_format)
         except ValueError:
             pass
-    raise ParseError('Unexpected date format. options: {}'.format(', '.join(DATETIME_FORMATS)),
+    raise ParseError('Unexpected date format.',
                      col_offset=node.col_offset,
                      options=DATETIME_FORMATS)
 
@@ -47,8 +47,8 @@ class AstHandler(object):
         try:
             handler = getattr(self, 'handle_' + thing_name)
         except AttributeError:
-            raise ParseError('Unsupported syntax ({}), options: ({}).'.format(thing_name,
-                                                                              self.get_options()),
+            raise ParseError('Unsupported syntax ({}).'.format(thing_name,
+                                                              self.get_options()),
                              col_offset=thing.col_offset if hasattr(thing, 'col_offset') else None,
                              options=self.get_options())
         return handler
@@ -61,6 +61,10 @@ class ParseError(Exception):
         super(ParseError, self).__init__(message)
         self.col_offset = col_offset
         self.options = options
+    def __str__(self):
+        if self.options:
+            return '{} options: {}'.format(self.message, self.options)
+        return self.message
         
 class Parser(AstHandler):
     def __init__(self, operator_map):
@@ -132,7 +136,7 @@ class SchemaAwareOperatorMap(OperatorMap):
     def resolve_field(self, node):
         field = super(SchemaAwareOperatorMap, self).resolve_field(node)
         if field not in self._field_to_type:
-            raise ParseError('Field not found: {}'.format(field),
+            raise ParseError('Field not found: {}.'.format(field),
                              col_offset=node.col_offset,
                              options=self._field_to_type.keys())
         return field
@@ -146,7 +150,7 @@ class Func(AstHandler):
 
     def get_arg(self, node, index):
         if index > len(node.args) - 1:
-            raise ParseError('Missing argument in {}'.format(node.func.id),
+            raise ParseError('Missing argument in {}.'.format(node.func.id),
                              col_offset=node.col_offset)
         return node.args[index]
     
@@ -157,7 +161,7 @@ class Func(AstHandler):
         try:
             handler = getattr(self, 'handle_' + node.func.id)
         except AttributeError:
-            raise ParseError('Unsupported function ({})'.format(node.func.id),
+            raise ParseError('Unsupported function ({}).'.format(node.func.id),
                              col_offset=node.col_offset,
                              options=self.get_options())
         return handler(node)
