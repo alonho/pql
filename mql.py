@@ -3,7 +3,7 @@ The parser:
 1. gets and expression
 2. parses it
 3. handles all boolean logic
-4. delegates operator parsing to the OperatorMap
+4. delegates operator and rvalue parsing to the OperatorMap
 
 SchemaFreeOperatorMap
 
@@ -15,7 +15,7 @@ SchemaAwareOperatorMap
   2. verifies operators are applied to fields of correct type.
 
 currently unsupported:
-1. $where
+1. $where - kind of intentionally against injections
 2. geospatial
 """
 import ast
@@ -77,15 +77,18 @@ class Parser(AstHandler):
         return {self.handle(op.op): map(self.handle, op.values)}
 
     def handle_And(self, op):
+        '''and'''
         return '$and'
 
     def handle_Or(self, op):
+        '''or'''
         return '$or'
 
     def handle_UnaryOp(self, op):
         return {self.handle(op.op): self.handle(op.operand)}
 
     def handle_Not(self, not_node):
+        '''not'''
         return '$not'
         
     def handle_Compare(self, compare):
@@ -196,7 +199,7 @@ class DateTimeFunc(Func):
 class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc):
     pass
 
-#---Field-Types---#
+#---Operators---#
 
 class Operator(AstHandler):
     def __init__(self, field):

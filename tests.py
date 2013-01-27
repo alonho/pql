@@ -2,53 +2,57 @@ from datetime import datetime
 from unittest import TestCase
 import mql
 
-class MqlSchemaLessTestCase(TestCase):
+class BaseMqlTestCase(TestCase):
+
+    def compare(self, string, expected):
+        print string, '|', expected
+        self.assertEqual(self.parser.parse(string), expected)
+        
+class MqlSchemaLessTestCase(BaseMqlTestCase):
 
     def setUp(self):
         self.parser = mql.SchemaFreeParser()
-
+        
     def test_equal_int(self):
-        self.assertEqual(self.parser.parse('a == 1'), {'a': 1})
+        self.compare('a == 1', {'a': 1})
 
     def test_equal_string(self):
-        self.assertEqual(self.parser.parse('a == "foo"'), {'a': 'foo'})
+        self.compare('a == "foo"', {'a': 'foo'})
 
     def test_nested(self):
-        self.assertEqual(self.parser.parse('a.b == 1'), {'a.b': 1})
+        self.compare('a.b == 1', {'a.b': 1})
         
     def test_and(self):
-        self.assertEqual(self.parser.parse('a == 1 and b == 2'),
-                         {'$and': [{'a': 1}, {'b': 2}]})
+        self.compare('a == 1 and b == 2', {'$and': [{'a': 1}, {'b': 2}]})
 
     def test_or(self):
-        self.assertEqual(self.parser.parse('a == 1 or b == 2'),
-                         {'$or': [{'a': 1}, {'b': 2}]})
+        self.compare('a == 1 or b == 2', {'$or': [{'a': 1}, {'b': 2}]})
 
     def test_not(self):
-        self.assertEqual(self.parser.parse('not a == 1'), {'$not': {'a': 1}})
+        self.compare('not a == 1', {'$not': {'a': 1}})
 
     def test_algebra(self):
         for string, expected in [('a > 1', {'a': {'$gt': 1}}),
                                  ('a >= 1', {'a': {'$gte': 1}}),
                                  ('a < 1', {'a': {'$lt': 1}}),
                                  ('a <= 1', {'a': {'$lte': 1}})]:
-            self.assertEqual(self.parser.parse(string), expected)
+            self.compare(string, expected)
 
     def test_bool(self):
-        self.assertEqual(self.parser.parse('a == True'), {'a': True})
-        self.assertEqual(self.parser.parse('a == False'), {'a': False})
+        self.compare('a == True', {'a': True})
+        self.compare('a == False', {'a': False})
 
     def test_list(self):
-        self.assertEqual(self.parser.parse('a == [1, 2, 3]'), {'a': [1, 2, 3]})
+        self.compare('a == [1, 2, 3]', {'a': [1, 2, 3]})
 
     def test_dict(self):
-        self.assertEqual(self.parser.parse('a == {"foo": 1}'), {'a': {'foo': 1}})
+        self.compare('a == {"foo": 1}', {'a': {'foo': 1}})
 
     def test_in(self):
-        self.assertEqual(self.parser.parse('a in [1, 2, 3]'), {'a': {'$in': [1, 2, 3]}})
+        self.compare('a in [1, 2, 3]', {'a': {'$in': [1, 2, 3]}})
 
     def test_not_in(self):
-        self.assertEqual(self.parser.parse('a not in [1, 2, 3]'), {'a': {'$nin': [1, 2, 3]}})
+        self.compare('a not in [1, 2, 3]', {'a': {'$nin': [1, 2, 3]}})
 
     def test_missing_func(self):
         with self.assertRaises(mql.ParseError) as context:
@@ -56,35 +60,32 @@ class MqlSchemaLessTestCase(TestCase):
         self.assertIn('Unsupported function', str(context.exception))
 
     def test_exists(self):
-        self.assertEqual(self.parser.parse('a == exists(True)'), {'a': {'$exists': True}})
+        self.compare('a == exists(True)', {'a': {'$exists': True}})
 
     def test_type(self):
-        self.assertEqual(self.parser.parse('a == type(3)'), {'a': {'$type': 3}})
+        self.compare('a == type(3)', {'a': {'$type': 3}})
 
     def test_regex(self):
-        self.assertEqual(self.parser.parse('a == regex("foo")'), {'a': {'$regex': 'foo'}})
-        self.assertEqual(self.parser.parse('a == regex("foo", "i")'),
-                         {'a': {'$regex': 'foo', '$options': 'i'}})
+        self.compare('a == regex("foo")', {'a': {'$regex': 'foo'}})
+        self.compare('a == regex("foo", "i")', {'a': {'$regex': 'foo', '$options': 'i'}})
 
     def test_mod(self):
-        self.assertEqual(self.parser.parse('a == mod(10, 3)'), {'a': {'$mod': [10, 3]}})
+        self.compare('a == mod(10, 3)', {'a': {'$mod': [10, 3]}})
 
     def test_size(self):
-        self.assertEqual(self.parser.parse('a == size(4)'), {'a': {'$size': 4}})
+        self.compare('a == size(4)', {'a': {'$size': 4}})
 
     def test_all(self):
-        self.assertEqual(self.parser.parse('a == all([1, 2, 3])'), {'a': {'$all': [1, 2, 3]}})
+        self.compare('a == all([1, 2, 3])', {'a': {'$all': [1, 2, 3]}})
     def test_match(self):
-        self.assertEqual(self.parser.parse('a == match({"foo": "bar"})'),
-                         {'a': {'$elemMatch': {'foo': 'bar'}}})
+        self.compare('a == match({"foo": "bar"})', {'a': {'$elemMatch': {'foo': 'bar'}}})
 
     def test_date(self):
-        self.assertEqual(self.parser.parse('a == date("2012-3-4")'),
-                         {'a': datetime(2012, 3, 4)})
-        self.assertEqual(self.parser.parse('a == date("2012-3-4 12:34:56,123")'),
-                         {'a': datetime(2012, 3, 4, 12, 34, 56, 123000)})
+        self.compare('a == date("2012-3-4")', {'a': datetime(2012, 3, 4)})
+        self.compare('a == date("2012-3-4 12:34:56,123")',
+                     {'a': datetime(2012, 3, 4, 12, 34, 56, 123000)})
 
-class MqlSchemaAwareTestCase(TestCase):
+class MqlSchemaAwareTestCase(BaseMqlTestCase):
 
     def setUp(self):
         self.parser = mql.SchemaAwareParser({'a': mql.IntField(),
@@ -92,7 +93,7 @@ class MqlSchemaAwareTestCase(TestCase):
                                              'foo.bar': mql.ListField(mql.StringField())})
 
     def test_sanity(self):
-        self.assertEqual(self.parser.parse('a == 3'), {'a': 3})
+        self.compare('a == 3', {'a': 3})
 
     def test_invalid_field(self):
         with self.assertRaises(mql.ParseError) as context:
@@ -114,9 +115,9 @@ class MqlSchemaAwareTestCase(TestCase):
         self.assertIn('Unexpected date format', str(context.exception))
 
     def test_date(self):
-        self.assertEqual(self.parser.parse('d > "2012-03-02"'),
-                         {'d': {'$gt': datetime(2012, 3, 2)}})
+        self.compare('d > "2012-03-02"',
+                     {'d': {'$gt': datetime(2012, 3, 2)}})
 
     def test_nested(self):
-        self.assertEqual(self.parser.parse('foo.bar == ["spam"]'), {'foo.bar': ['spam']})
-        self.assertEqual(self.parser.parse('foo.bar == "spam"'), {'foo.bar': 'spam'})
+        self.compare('foo.bar == ["spam"]', {'foo.bar': ['spam']})
+        self.compare('foo.bar == "spam"', {'foo.bar': 'spam'})
