@@ -28,21 +28,14 @@ DATETIME_FORMATS = [FULL_DATETIME_FORMAT,
                     DATE_FORMAT]
 def parse_date(node):
     string = node.s
-    try:
-        return datetime.strptime(string, FULL_DATETIME_FORMAT)
-    except ValueError:
-        pass
-    try:
-        return datetime.strptime(string, DATE_AND_TIME_FORMAT)
-    except ValueError:
-        pass
-    try:
-        return datetime.strptime(string, DATE_FORMAT)
-    except ValueError:
-        date_formats = ', '.join(DATETIME_FORMATS)
-        raise ParseError('Unexpected date format. options: {}'.format(date_formats),
-                         col_offset=node.col_offset,
-                         options=DATETIME_FORMATS)
+    for datetime_format in DATETIME_FORMATS:
+        try:
+            return datetime.strptime(string, datetime_format)
+        except ValueError:
+            pass
+    raise ParseError('Unexpected date format. options: {}'.format(', '.join(DATETIME_FORMATS)),
+                     col_offset=node.col_offset,
+                     options=DATETIME_FORMATS)
 
 class AstHandler(object):
 
@@ -56,7 +49,7 @@ class AstHandler(object):
         except AttributeError:
             raise ParseError('Unsupported syntax ({}), options: ({}).'.format(thing_name,
                                                                               self.get_options()),
-                             col_offset=thing.col_offset,
+                             col_offset=thing.col_offset if hasattr(thing, 'col_offset') else None,
                              options=self.get_options())
         return handler
 
@@ -205,38 +198,48 @@ class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc):
 
 #---Field-Types---#
 
-class Field(AstHandler):
-    def handle_operator_and_right(self, operator, right):
-        return self.resolve(operator)(right)
-    def handle_In(self, node):
-        '''in''' 
-        return {'$in': map(self.handle, node.elts)}
-    def handle_NotIn(self, node):
-        '''not in'''
-        return {'$nin': map(self.handle, node.elts)}
+class Operator(AstHandler):
+    def __init__(self, field):
+        self.field = field
     def handle_Eq(self, node):
         '''=='''
-        return self.handle(node)
-
-class AlgebricField(Field):
+        return self.field.handle(node)    
+    def handle_In(self, node):
+        '''in''' 
+        return {'$in': map(self.field.handle, node.elts)}
+    def handle_NotIn(self, node):
+        '''not in'''
+        return {'$nin': map(self.field.handle, node.elts)}
+    
+class AlgebricOperator(Operator):
     def handle_Gt(self, node):
         '''>'''
-        return {'$gt': self.handle(node)}
+        return {'$gt': self.field.handle(node)}
     def handle_Lt(self,node):
         '''<'''
-        return {'$lt': self.handle(node)}
+        return {'$lt': self.field.handle(node)}
     def handle_GtE(self, node):
         '''>='''
-        return {'$gte': self.handle(node)}
+        return {'$gte': self.field.handle(node)}
     def handle_LtE(self, node):
         '''<='''
-        return {'$lte': self.handle(node)}
+        return {'$lte': self.field.handle(node)}
+
+#---Field-Types---#
+
+class Field(AstHandler):
+    OP_CLASS = Operator
+    def handle_operator_and_right(self, operator, right):
+        return self.OP_CLASS(self).resolve(operator)(right)
+
+class AlgebricField(Field):
+    OP_CLASS = AlgebricOperator
 
 class StringField(AlgebricField):
-    def handle_Str(self, node):
-        return node.s
     def handle_Call(self, node):
         return StringFunc().handle(node)
+    def handle_Str(self, node):
+        return node.s
 
 class IntField(AlgebricField):
     def handle_Num(self, node):
