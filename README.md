@@ -2,6 +2,14 @@
 MQL
 ===
 
+Installation
+============
+
+	pip install mql
+	
+Follow **@alonhorev** on **twitter** for updates.
+Source located at: http://github.com/alonho/mql
+
 Usage
 =====
 
