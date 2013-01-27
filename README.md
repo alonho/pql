@@ -2,6 +2,12 @@
 MQL
 ===
 
+MQL stands for MongoDB-Query-Language. MQL translates python expressions to **MongoDB** queries.
+
+MQL uses the builtin python **ast** module for parsing and analysis of python expressions.
+
+MQL is resilient to code injections as it doesn't evaluate the code.
+
 Installation
 ============
 
