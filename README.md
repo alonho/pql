@@ -8,8 +8,7 @@ Usage
 Schema-Free Example
 -------------------
 
-The schema-free parser converts python expressions to mongodb queries with no schema enforcment.
-This parser fits most use cases.
+The schema-free parser converts python expressions to mongodb queries with no schema enforcment:
 
 	>>> import mql
 	>>> parser = mql.SchemaFreeParser()
@@ -95,6 +94,6 @@ a == type(3) | {'a': {'$type': 3}}
 TODO
 ====
 
-1. Generate a schema from a *mongoengine*/*mongokit* class.
+1. Generate a schema from a *mongoengine* or *mongokit* class.
 2. Add support for geospatial queries.
 3. Add support for $where.

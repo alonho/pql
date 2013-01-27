@@ -47,7 +47,7 @@ class AstHandler(object):
         try:
             handler = getattr(self, 'handle_' + thing_name)
         except AttributeError:
-            raise ParseError('Unsupported syntax ({}).'.format(thing_name,
+            raise ParseError('Unsupported syntax ({0}).'.format(thing_name,
                                                               self.get_options()),
                              col_offset=thing.col_offset if hasattr(thing, 'col_offset') else None,
                              options=self.get_options())
@@ -59,11 +59,12 @@ class AstHandler(object):
 class ParseError(Exception):
     def __init__(self, message, col_offset, options=[]):
         super(ParseError, self).__init__(message)
+        self.message = message
         self.col_offset = col_offset
         self.options = options
     def __str__(self):
         if self.options:
-            return '{} options: {}'.format(self.message, self.options)
+            return '{0} options: {1}'.format(self.message, self.options)
         return self.message
         
 class Parser(AstHandler):
@@ -78,7 +79,7 @@ class Parser(AstHandler):
         return self.handle(ex.body)
 
     def handle_BoolOp(self, op):
-        return {self.handle(op.op): map(self.handle, op.values)}
+        return {self.handle(op.op): list(map(self.handle, op.values))}
 
     def handle_And(self, op):
         '''and'''
@@ -97,7 +98,7 @@ class Parser(AstHandler):
         
     def handle_Compare(self, compare):
         if len(compare.comparators) != 1:
-            raise ParseError('Invalid number of comparators: {}',
+            raise ParseError('Invalid number of comparators: {0}',
                              col_offset=compare.comparators[1].col_offset)
         return self._operator_map.handle(left=compare.left,
                                          operator=compare.ops[0],
@@ -115,7 +116,7 @@ class FieldName(AstHandler):
     def handle_Name(self, name):
         return name.id
     def handle_Attribute(self, attr):
-        return '{}.{}'.format(self.handle(attr.value), attr.attr)
+        return '{0}.{1}'.format(self.handle(attr.value), attr.attr)
 
 class OperatorMap(object):
     def resolve_field(self, node):
@@ -136,7 +137,7 @@ class SchemaAwareOperatorMap(OperatorMap):
     def resolve_field(self, node):
         field = super(SchemaAwareOperatorMap, self).resolve_field(node)
         if field not in self._field_to_type:
-            raise ParseError('Field not found: {}.'.format(field),
+            raise ParseError('Field not found: {0}.'.format(field),
                              col_offset=node.col_offset,
                              options=self._field_to_type.keys())
         return field
@@ -150,7 +151,7 @@ class Func(AstHandler):
 
     def get_arg(self, node, index):
         if index > len(node.args) - 1:
-            raise ParseError('Missing argument in {}.'.format(node.func.id),
+            raise ParseError('Missing argument in {0}.'.format(node.func.id),
                              col_offset=node.col_offset)
         return node.args[index]
     
@@ -161,7 +162,7 @@ class Func(AstHandler):
         try:
             handler = getattr(self, 'handle_' + node.func.id)
         except AttributeError:
-            raise ParseError('Unsupported function ({}).'.format(node.func.id),
+            raise ParseError('Unsupported function ({0}).'.format(node.func.id),
                              col_offset=node.col_offset,
                              options=self.get_options())
         return handler(node)
@@ -213,10 +214,10 @@ class Operator(AstHandler):
         return self.field.handle(node)    
     def handle_In(self, node):
         '''in''' 
-        return {'$in': map(self.field.handle, node.elts)}
+        return {'$in': list(map(self.field.handle, node.elts))}
     def handle_NotIn(self, node):
         '''not in'''
-        return {'$nin': map(self.field.handle, node.elts)}
+        return {'$nin': list(map(self.field.handle, node.elts))}
     
 class AlgebricOperator(Operator):
     def handle_Gt(self, node):
@@ -267,7 +268,7 @@ class _ListField(Field):
     def __init__(self, field=PrimitiveField()):
         self._field = field
     def handle_List(self, node):
-        return map(self._field.handle, node.elts)
+        return list(map(self._field.handle, node.elts))
     def handle_Call(self, node):
         return ListFunc().handle(node)
 def ListField(field=PrimitiveField()):
@@ -279,8 +280,8 @@ class DictField(Field):
     def __init__(self, field=PrimitiveField()):
         self._field = field
     def handle_Dict(self, node):
-        return {StringField().handle(key): self._field.handle(value)
-                for key, value in zip(node.keys, node.values)}
+        return dict((StringField().handle(key), self._field.handle(value))
+                    for key, value in zip(node.keys, node.values))
 
 class DateTimeField(AlgebricField):
     def handle_Str(self, node):

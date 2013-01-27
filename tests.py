@@ -5,7 +5,7 @@ import mql
 class BaseMqlTestCase(TestCase):
 
     def compare(self, string, expected):
-        print string, '|', expected
+        #print string, '|', expected
         self.assertEqual(self.parser.parse(string), expected)
         
 class MqlSchemaLessTestCase(BaseMqlTestCase):
@@ -98,7 +98,8 @@ class MqlSchemaAwareTestCase(BaseMqlTestCase):
     def test_invalid_field(self):
         with self.assertRaises(mql.ParseError) as context:
             self.parser.parse('b == 3')
-        self.assertEqual(context.exception.options, ['a', 'd', 'foo.bar'])
+        self.assertEqual(sorted(context.exception.options),
+                         sorted(['a', 'd', 'foo.bar']))
 
     def test_type_error(self):
         with self.assertRaises(mql.ParseError):
