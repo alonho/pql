@@ -54,7 +54,7 @@ Validates functions are called against the appropriate types:
 	Traceback (most recent call last):
 		...
 	mql.ParseError: Unsupported function (regex). options: ['date', 'exists', 'type']
-
+	
 Data Types
 ----------
 
@@ -109,5 +109,6 @@ TODO
 ====
 
 1. Generate a schema from a *mongoengine* or *mongokit* class.
-2. Add support for geospatial queries.
-3. Add support for $where.
+2. Add a declarative schema generation syntax.
+3. Add support for geospatial queries.
+4. Add support for $where.
