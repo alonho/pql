@@ -19,6 +19,7 @@ currently unsupported:
 2. geospatial
 """
 import ast
+import bson
 from datetime import datetime
 FULL_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S,%f'
 DATE_AND_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -200,8 +201,12 @@ class ListFunc(Func):
 class DateTimeFunc(Func):
     def handle_date(self, node):
         return parse_date(self.get_arg(node, 0))
-        
-class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc):
+
+class IdFunc(Func):
+    def handle_id(self, node):
+        return self.parse_arg(node, 0, IdField())
+
+class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc, IdFunc):
     pass
 
 #---Operators---#
@@ -288,6 +293,12 @@ class DateTimeField(AlgebricField):
         return parse_date(node)
     def handle_Call(self, node):
         return DateTimeFunc().handle(node)
+
+class IdField(AlgebricField):
+    def handle_Str(self, node):
+        return bson.ObjectId(node.s)
+    def handle_Call(self, node):
+        return IdFunc().handle(node)
 
 class GenericField(IntField, BoolField, StringField, _ListField, DictField):
     def handle_Call(self, node):

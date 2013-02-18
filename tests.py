@@ -1,5 +1,6 @@
 from datetime import datetime
 from unittest import TestCase
+import bson
 import pql
 
 class BasePqlTestCase(TestCase):
@@ -84,6 +85,10 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
         self.compare('a == date("2012-3-4")', {'a': datetime(2012, 3, 4)})
         self.compare('a == date("2012-3-4 12:34:56,123")',
                      {'a': datetime(2012, 3, 4, 12, 34, 56, 123000)})
+
+    def test_id(self):
+        self.compare('_id == id("abcdeabcdeabcdeabcdeabcd")',
+                     {'_id': bson.ObjectId("abcdeabcdeabcdeabcdeabcd")})
 
 class PqlSchemaAwareTestCase(BasePqlTestCase):
 
