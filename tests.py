@@ -30,7 +30,7 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
         self.compare('a == 1 or b == 2', {'$or': [{'a': 1}, {'b': 2}]})
 
     def test_not(self):
-        self.compare('not a == 1', {'$not': {'a': 1}})
+        self.compare('not a > 1', {'a': {'$not': {'$gt': 1}}})
 
     def test_algebra(self):
         for string, expected in [('a > 1', {'a': {'$gt': 1}}),

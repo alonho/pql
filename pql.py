@@ -91,7 +91,12 @@ class Parser(AstHandler):
         return '$or'
 
     def handle_UnaryOp(self, op):
-        return {self.handle(op.op): self.handle(op.operand)}
+        operator = self.handle(op.operand)
+        if not isinstance(operator, dict):
+            raise ParseError("Cannot use 'not' on a value, requires an expression")
+        elif len(operator) > 1:
+            raise ParseError("Invalid expression used in conjunction with 'not'")
+        return {operator.keys()[0]: {self.handle(op.op): operator.values()[0]}}
 
     def handle_Not(self, not_node):
         '''not'''
