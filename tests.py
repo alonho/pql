@@ -17,8 +17,8 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
     def test_equal_int(self):
         self.compare('a == 1', {'a': 1})
 
-    def test_equal_string(self):
-        self.compare('a == "foo"', {'a': 'foo'})
+    def test_not_equal_string(self):
+        self.compare('a != "foo"', {'a': {'$ne': 'foo'}})
 
     def test_nested(self):
         self.compare('a.b == 1', {'a.b': 1})
@@ -78,6 +78,7 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
 
     def test_all(self):
         self.compare('a == all([1, 2, 3])', {'a': {'$all': [1, 2, 3]}})
+
     def test_match(self):
         self.compare('a == match({"foo": "bar"})', {'a': {'$elemMatch': {'foo': 'bar'}}})
 

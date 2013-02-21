@@ -69,6 +69,7 @@ a == {"foo": 1} | {'a': {'foo': 1}}
 a == date("2012-3-4") | {'a': datetime.datetime(2012, 3, 4, 0, 0)}
 a == date("2012-3-4 12:34:56") | {'a': datetime.datetime(2012, 3, 4, 12, 34, 56)}
 a == date("2012-3-4 12:34:56,123") | {'a': datetime.datetime(2012, 3, 4, 12, 34, 56, 123000)}
+id == id("abcdeabcdeabcdeabcdeabcd") | {'id': bson.ObjectId("abcdeabcdeabcdeabcdeabcd")}
 
 Operators
 ---------

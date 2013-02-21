@@ -216,7 +216,10 @@ class Operator(AstHandler):
         self.field = field
     def handle_Eq(self, node):
         '''=='''
-        return self.field.handle(node)    
+        return self.field.handle(node)
+    def handle_NotEq(self, node):
+        '''!='''
+        return {'$ne': self.field.handle(node)}
     def handle_In(self, node):
         '''in''' 
         return {'$in': list(map(self.field.handle, node.elts))}
