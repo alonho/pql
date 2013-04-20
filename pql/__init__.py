@@ -56,6 +56,10 @@ class AstHandler(object):
 
     def handle(self, thing):
         return self.resolve(thing)(thing)
+
+    def parse(self, string):
+        ex = ast.parse(string, mode='eval')
+        return self.handle(ex.body)
         
 class ParseError(Exception):
     def __init__(self, message, col_offset, options=[]):
@@ -74,10 +78,6 @@ class Parser(AstHandler):
 
     def get_options(self):
         return self._operator_map.get_options()
-        
-    def parse(self, string):
-        ex = ast.parse(string, mode='eval')
-        return self.handle(ex.body)
 
     def handle_BoolOp(self, op):
         return {self.handle(op.op): list(map(self.handle, op.values))}
@@ -92,11 +92,8 @@ class Parser(AstHandler):
 
     def handle_UnaryOp(self, op):
         operator = self.handle(op.operand)
-        if not isinstance(operator, dict):
-            raise ParseError("Cannot use 'not' on a value, requires an expression")
-        elif len(operator) > 1:
-            raise ParseError("Invalid expression used in conjunction with 'not'")
-        return {operator.keys()[0]: {self.handle(op.op): operator.values()[0]}}
+        field, value = list(operator.items())[0]
+        return {field: {self.handle(op.op): value}}
 
     def handle_Not(self, not_node):
         '''not'''
@@ -155,7 +152,8 @@ class SchemaAwareOperatorMap(OperatorMap):
         
 class Func(AstHandler):
 
-    def get_arg(self, node, index):
+    @staticmethod
+    def get_arg(node, index):
         if index > len(node.args) - 1:
             raise ParseError('Missing argument in {0}.'.format(node.func.id),
                              col_offset=node.col_offset)

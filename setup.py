@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pql',
-      version='0.1.1',
+      version='0.2.0',
       description='A python expression to MongoDB query translator',
       author='Alon Horev',
       author_email='alon@horev.net',
@@ -17,4 +17,4 @@ setup(name='pql',
       # I know it's bad practice to not specify a pymongo version, but we only
       # require the bson.ObjectId type, It's safe to assume it won't change (famous last words)
       install_requires=['pymongo'], 
-      py_modules=['pql'])
+      packages=['pql'])
