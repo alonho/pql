@@ -10,10 +10,12 @@ class PqlAggregationTest(BasePqlTestCase):
 class PqlAggregationDataTypesTest(PqlAggregationTest):
 
     def test_bool(self):
-        self.compare('True', 'true')
-        self.compare('true', 'true')
-        self.compare('False', 'false')
-        self.compare('false', 'false')
+        self.compare('True', True)
+        self.compare('true', True)
+        self.compare('False', False)
+        self.compare('false', False)
+        self.compare('None', None)
+        self.compare('null', None)
 
 class PqlAggregationSimpleProjectionTest(PqlAggregationTest):
 

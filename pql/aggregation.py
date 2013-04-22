@@ -13,7 +13,7 @@ class AggregationParser(AstHandler):
                     'substr': 3,
                     'toLower': 1,
                     'toUpper': 1,
-                    
+
                     'dayOfYear': 1,
                     'dayOfMonth': 1,
                     'dayOfWeek': 1,
@@ -31,11 +31,12 @@ class AggregationParser(AstHandler):
 
                     'ifnull': 2}
 
-    SPECIAL_VALUES = {'False': 'false',
-                      'false': 'false',
-                      'True': 'true',
-                      'true': 'true',
-                      'null': 'null'}
+    SPECIAL_VALUES = {'False': False,
+                      'false': False,
+                      'True': True,
+                      'true': True,
+                      'None': None,
+                      'null': None}
     
     def handle_Str(self, node):
         return node.s
