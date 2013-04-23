@@ -4,7 +4,7 @@ TODO:
 optimize adds, multiplies, 'or' and 'and' as they can accept more than two values
 validate type info on specific functions
 '''
-from . import AstHandler, ParseError, DateTimeFunc
+from .matching import AstHandler, ParseError, DateTimeFunc
 
 class AggregationParser(AstHandler):
 
@@ -93,7 +93,7 @@ class AggregationParser(AstHandler):
 
     def handle_Compare(self, node):
         if len(node.ops) != 1:
-            raise ParseError('Invalid number of comparators: {0}',
+            raise ParseError('Invalid number of comparators: {0}'.format(len(node.ops)),
                              col_offset=node.comparators[1].col_offset)
         return {self.handle(node.ops[0]): [self.handle(node.left),
                                            self.handle(node.comparators[0])]}
@@ -130,3 +130,10 @@ class AggregationParser(AstHandler):
 
     def handle_Div(self, node):
         return '$divide'
+
+class AggregationGroupParser(AggregationParser):
+    GROUP_FUNCTIONS = ['addToSet', 'push', 'first', 'last',
+                       'max', 'min', 'avg', 'sum']
+for func in AggregationGroupParser.GROUP_FUNCTIONS:
+    AggregationGroupParser.FUNC_TO_ARGS[func] = 1
+
