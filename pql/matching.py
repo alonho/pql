@@ -28,6 +28,8 @@ DATETIME_FORMATS = [FULL_DATETIME_FORMAT,
                     DATE_AND_TIME_FORMAT,
                     DATE_FORMAT]
 def parse_date(node):
+    if hasattr(node, 'n'): # it's a number!
+        return datetime.fromtimestamp(node.n)
     string = node.s
     for datetime_format in DATETIME_FORMATS:
         try:
@@ -296,6 +298,8 @@ class DictField(Field):
 
 class DateTimeField(AlgebricField):
     def handle_Str(self, node):
+        return parse_date(node)
+    def handle_Num(self, node):
         return parse_date(node)
     def handle_Call(self, node):
         return DateTimeFunc().handle(node)

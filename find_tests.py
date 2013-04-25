@@ -80,6 +80,8 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
         self.compare('a == match({"foo": "bar"})', {'a': {'$elemMatch': {'foo': 'bar'}}})
 
     def test_date(self):
+        self.compare('a == date(0.1)', {'a': datetime(1970, 1, 1, 2, 0, 0, 100000)})
+        self.compare('a == date(10)', {'a': datetime(1970, 1, 1, 2, 0, 10)})
         self.compare('a == date("2012-3-4")', {'a': datetime(2012, 3, 4)})
         self.compare('a == date("2012-3-4 12:34:56,123")',
                      {'a': datetime(2012, 3, 4, 12, 34, 56, 123000)})

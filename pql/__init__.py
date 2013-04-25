@@ -5,6 +5,11 @@ from .matching import (SchemaFreeParser, SchemaAwareParser, ParseError,
                        ListField, DictField, DateTimeField)
 
 def find(expression, schema=None):
+    '''
+    Gets an <expression> and optional <schema>.
+    <expression> should be a string of python code.
+    <schema> should be a dictionary mapping field names to types.
+    '''
     parser = SchemaFreeParser() if schema is None else SchemaAwareParser(schema)
     return parser.parse(expression)
 
@@ -31,10 +36,10 @@ def _parse_dict(parser, dct):
 @pipe
 def group(_id, **kwargs):
     group = _parse_dict(parser=AggregationGroupParser(), dct=kwargs)
-    if not isinstance(_id, pipe_element):
-        _id = AggregationParser().parse(_id)
-    else:
+    if isinstance(_id, pipe_element):
         _id = _id[0]['$project']
+    else:
+        _id = AggregationParser().parse(_id)
     group['_id'] = _id
     return {'$group': group}
 
@@ -66,6 +71,12 @@ def unwind(list_name):
 
 @pipe
 def sort(fields):
+    '''
+    Gets a list of <fields> to sort by.
+    Also supports getting a single string for sorting by one field.
+    Reverse sort is supported by appending '-' to the field name.
+    Example: sort(['age', '-height']) will sort by ascending age and descending height.
+    '''
     from pymongo import ASCENDING, DESCENDING
     from bson import SON
 
