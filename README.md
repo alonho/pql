@@ -25,8 +25,7 @@ Schema-Free Example
 The schema-free parser converts python expressions to mongodb queries with no schema enforcment:
 
 	>>> import pql
-	>>> parser = pql.SchemaFreeParser()
-	>>> parser.parse("a > 1 and b == 'foo' or not c.d == False")
+	>>> pql.find("a > 1 and b == 'foo' or not c.d == False")
 	{'$or': [{'$and': [{'a': {'$gt': 1}}, {'b': 'foo'}]}, {'$not': {'c.d': False}}]}
 
 Schema-Aware Example
@@ -35,22 +34,21 @@ Schema-Aware Example
 The schema-aware parser validates fields exist:
 
 	>>> import pql
-	>>> parser = pql.SchemaAwareParser({'a': pql.DateTimeField()})
-	>>> parser.parse('b == 1') 
+	>>> pql.find('b == 1', schema={'a': pql.DateTimeField()}) 
 	Traceback (most recent call last):
 		...
 	pql.ParseError: Field not found: b. options: ['a']
 	
 Validates values are of the correct type:
 
-	>>> parser.parse('a == 1')
+	>>> pql.find('a == 1', schema={'a': pql.DateTimeField()})
 	Traceback (most recent call last):
 		...
 	pql.ParseError: Unsupported syntax (Num).
 	
 Validates functions are called against the appropriate types:
 
-	>>> parser.parse('a == regex("foo")')
+	>>> pql.find('a == regex("foo")', schema={'a': pql.DateTimeField()})
 	Traceback (most recent call last):
 		...
 	pql.ParseError: Unsupported function (regex). options: ['date', 'exists', 'type']
@@ -113,11 +111,52 @@ Aggregation Queries
 Example
 -------
 
-	>>> from pql.aggregation import AggregationParser
-	>>> AggregationParser().parse('a + b / c - 3 * 4 == 1')
-	{'$eq': [{'$subtract': [{'$add': ['$a', {'$divide': ['$b', '$c']}]}, {'$multiply': [3, 4]}]}, 1]}
-	>>> AggregationParser().parse('a if b > 3 else c')
-	{'$cond': [{'$gt': ['$b', 3]}, '$a', '$c']}
+Lets say you have a collection of car listings:
+
+	>>> list(db.cars.find())
+    [{'_id': ObjectId('51794ce58c998f1e2b654b50'),
+      'made_on': datetime.datetime(1971, 4, 7, 0, 0),
+      'model': 'fiat',
+      'price': 3},
+     {'_id': ObjectId('51794cea8c998f1e2b654b51'),
+      'made_on': datetime.datetime(1980, 10, 19, 0, 0),
+      'model': 'subaru',
+      'price': 5},
+     {'_id': ObjectId('51794cf08c998f1e2b654b52'),
+      'made_on': datetime.datetime(1983, 2, 27, 0, 0),
+      'model': 'kia',
+      'price': 4},
+     {'_id': ObjectId('51794d3c8c998f1e2b654b53'),
+      'made_on': datetime.datetime(1988, 1, 23, 0, 0),
+      'model': 'kia',
+      'price': 7}]
+  
+ How do you get the number of cars and the sum of their prices per model per decade:
+ 
+    >>> collection.aggregate(project(model='model', 
+	                                made_on='year(made_on)', 
+									price='price * 3.7') | 
+    		                 match('made_on > 1975 and made_on < 1990') | 
+							 group(_id=project(model='model', 
+							                   decade='made_on - (made_on % 10)'), 
+						           count='sum(1)', 
+								   total='sum(price)'))
+    {'ok': 1.0,
+     'result': [{'_id': {'decade': 1980, 'model': 'subaru'}, 'count': 1,'total': 18.5},
+			    {'_id': {'decade': 1980, 'model': 'kia'}, 'count': 2, 'total': 40.7}]}
+
+How would it look using the raw syntax:
+
+    [{'$project': {'made_on': {'$year': '$made_on'},
+                   'model': '$model',
+                   'price': {'$multiply': ['$price', 3.7]}}},
+     {'$match': {'$and': [{'made_on': {'$gt': 1975}},
+                          {'made_on': {'$lt': 1990}}]}},
+     {'$group': {'_id': {'decade': {'$subtract': ['$made_on',
+                                                  {'$mod': ['$made_on', 10]}]},
+                         'model': '$model'},
+      'count': {'$sum': 1},
+      'total': {'$sum': '$price'}}}]
 
 Referencing Fields
 ------------------
@@ -190,3 +229,4 @@ TODO
 2. Add a declarative schema generation syntax.
 3. Add support for geospatial queries.
 4. Add support for $where.
+

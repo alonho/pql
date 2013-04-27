@@ -1,11 +1,42 @@
-from tests import BasePqlTestCase
-from pql import ParseError
-from pql.aggregation import AggregationParser
+from unittest import TestCase
+from bson import SON
+import pymongo
+import pql
 
-class PqlAggregationTest(BasePqlTestCase):
+class PqlAggregationTest(TestCase):
+
+    def compare(self, expression, expected):
+        self.assertEqual(pql.AggregationParser().parse(expression), expected)
+
+class PqlAggregationPipesTest(PqlAggregationTest):
+
+    def test_match(self):
+        self.assertEqual(pql.match('a == 1'), [{'$match': {'a': 1}}])
     
-    def setUp(self):
-        self.parser = AggregationParser()
+    def test_group(self):
+        for group_func in pql.AggregationGroupParser.GROUP_FUNCTIONS:
+            self.assertEqual(pql.group(_id='foo', total=group_func + '(bar)'),
+                             [{'$group': {'_id': '$foo', 'total': {'$' + group_func: '$bar'}}}])
+
+    def test_project(self):
+        self.assertEqual(pql.project(foo='bar', a='b + c'),
+                         [{'$project': {'foo': '$bar', 'a': {'$add': ['$b', '$c']}}}])
+
+    def test_skip(self):
+        self.assertEqual(pql.skip(3), [{'$skip': 3}])
+
+    def test_limit(self):
+        self.assertEqual(pql.limit(2), [{'$limit': 2}])
+
+    def test_unwind(self):
+        self.assertEqual(pql.unwind('foo'), [{'$unwind': '$foo'}])
+
+    def test_sort(self):
+        self.assertEqual(pql.sort('a'), [{'$sort': SON([('a', pymongo.ASCENDING)])}])
+        self.assertEqual(pql.sort(['a', '-b', '+c']),
+                         [{'$sort': SON([('a', pymongo.ASCENDING),
+                                         ('b', pymongo.DESCENDING),
+                                         ('c', pymongo.ASCENDING)])}])
 
 class PqlAggregationDataTypesTest(PqlAggregationTest):
 
@@ -117,16 +148,15 @@ class PqlAggregationSanityTest(PqlAggregationTest):
 
 class PqlAggregationErrorsTest(PqlAggregationTest):
     def test_invalid_num_args(self):
-        self.parser.parse('ifnull(1, 2)')
-        with self.assertRaises(ParseError):
-            self.parser.parse('ifnull(1)')
-        with self.assertRaises(ParseError):
-            self.parser.parse('ifnull()')
+        with self.assertRaises(pql.ParseError):
+            self.compare('ifnull(1)', None)
+        with self.assertRaises(pql.ParseError):
+            self.compare('ifnull()', None)
 
     def test_invalid_func(self):
-        with self.assertRaises(ParseError):
-            self.parser.parse('foo(10)')
+        with self.assertRaises(pql.ParseError):
+            self.compare('foo(10)', None)
 
     def test_invalid_comparators(self):
-        with self.assertRaises(ParseError):
-            self.parser.parse('1 < a < 3')
+        with self.assertRaises(pql.ParseError):
+            self.compare('1 < a < 3', None)

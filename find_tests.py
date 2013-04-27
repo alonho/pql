@@ -7,13 +7,10 @@ class BasePqlTestCase(TestCase):
 
     def compare(self, string, expected):
         #print string, '|', expected
-        self.assertEqual(self.parser.parse(string), expected)
+        self.assertEqual(pql.find(string), expected)
         
 class PqlSchemaLessTestCase(BasePqlTestCase):
 
-    def setUp(self):
-        self.parser = pql.SchemaFreeParser()
-        
     def test_equal_int(self):
         self.compare('a == 1', {'a': 1})
 
@@ -57,7 +54,7 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
 
     def test_missing_func(self):
         with self.assertRaises(pql.ParseError) as context:
-            self.parser.parse('a == foo()')
+            pql.find('a == foo()')
         self.assertIn('Unsupported function', str(context.exception))
 
     def test_exists(self):
@@ -83,6 +80,8 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
         self.compare('a == match({"foo": "bar"})', {'a': {'$elemMatch': {'foo': 'bar'}}})
 
     def test_date(self):
+        self.compare('a == date(0.1)', {'a': datetime(1970, 1, 1, 2, 0, 0, 100000)})
+        self.compare('a == date(10)', {'a': datetime(1970, 1, 1, 2, 0, 10)})
         self.compare('a == date("2012-3-4")', {'a': datetime(2012, 3, 4)})
         self.compare('a == date("2012-3-4 12:34:56,123")',
                      {'a': datetime(2012, 3, 4, 12, 34, 56, 123000)})
@@ -93,32 +92,33 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
 
 class PqlSchemaAwareTestCase(BasePqlTestCase):
 
-    def setUp(self):
-        self.parser = pql.SchemaAwareParser({'a': pql.IntField(),
-                                             'd': pql.DateTimeField(),
-                                             'foo.bar': pql.ListField(pql.StringField())})
+    def compare(self, string, expected):
+        #print string, '|', expected
+        self.assertEqual(pql.find(string, schema={'a': pql.IntField(),
+                                                  'd': pql.DateTimeField(),
+                                                  'foo.bar': pql.ListField(pql.StringField())}), expected)
 
     def test_sanity(self):
         self.compare('a == 3', {'a': 3})
 
     def test_invalid_field(self):
         with self.assertRaises(pql.ParseError) as context:
-            self.parser.parse('b == 3')
+            self.compare('b == 3', None)
         self.assertEqual(sorted(context.exception.options),
                          sorted(['a', 'd', 'foo.bar']))
 
     def test_type_error(self):
         with self.assertRaises(pql.ParseError):
-            self.parser.parse('a == "foo"')
+            self.compare('a == "foo"', None)
 
     def test_invalid_function(self):
         with self.assertRaises(pql.ParseError) as context:
-            self.parser.parse('a == size(3)')
+            self.compare('a == size(3)', None)
         self.assertIn('Unsupported function', str(context.exception))
 
     def test_invalid_date(self):
         with self.assertRaises(pql.ParseError) as context:
-            self.parser.parse('d == "foo"')
+            self.compare('d == "foo"', None)
         self.assertIn('Unexpected date format', str(context.exception))
 
     def test_date(self):
