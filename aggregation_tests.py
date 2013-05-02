@@ -18,6 +18,12 @@ class PqlAggregationPipesTest(PqlAggregationTest):
             self.assertEqual(pql.group(_id='foo', total=group_func + '(bar)'),
                              [{'$group': {'_id': '$foo', 'total': {'$' + group_func: '$bar'}}}])
 
+    def test_invalid_group(self):
+        with self.assertRaises(pql.ParseError):
+            pql.group(_id='foo', total='bar(1)')
+        with self.assertRaises(pql.ParseError):
+            pql.group(_id='foo', total='min(1, 2)')
+
     def test_project(self):
         self.assertEqual(pql.project(foo='bar', a='b + c'),
                          [{'$project': {'foo': '$bar', 'a': {'$add': ['$b', '$c']}}}])
@@ -119,17 +125,17 @@ class PqlAggregationStringTest(PqlAggregationTest):
         self.compare('substr("foo", 1, 2)', {'$substr': ['foo', 1, 2]})
 
     def test_toLower(self):
-        self.compare('toLower(a)', {'$toLower': '$a'})
+        self.compare('toLower(a)', {'$toLower': ['$a']})
 
     def test_toUpper(self):
-        self.compare('toUpper(a)', {'$toUpper': '$a'})
+        self.compare('toUpper(a)', {'$toUpper': ['$a']})
 
 class PqlAggregationDateTest(PqlAggregationTest):
     def test(self):
         for func in ['dayOfYear', 'dayOfMonth', 'dayOfWeek',
                      'year', 'month', 'week',
                      'hour', 'minute', 'second', 'millisecond']:
-            self.compare('{}(a)'.format(func), {'${}'.format(func): '$a'})
+            self.compare('{0}(a)'.format(func), {'${0}'.format(func): ['$a']})
 
 class PqlConditionTest(PqlAggregationTest):
     def test_if(self):

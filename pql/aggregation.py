@@ -69,11 +69,10 @@ class AggregationParser(AstHandler):
            self.FUNC_TO_ARGS[name] != '+' or len(node.args) == 0:
             raise ParseError('Invalid number of arguments to function {0}'.format(name),
                              col_offset=node.col_offset)
-            
-        args = list(map(self.handle, node.args))
-        if len(args) == 1:
-            args, = args
-        return {'$' + node.func.id: args}
+
+        # because of SERVER-9289 the following fails: {'$year': {'$add' :['$time_stamp', 1]}}
+        # wrapping both single arg functions in a list solves it: {'$year': [{'$add' :['$time_stamp', 1]}]}
+        return {'$' + node.func.id: list(map(self.handle, node.args))}
 
     def handle_BinOp(self, node):
         return {self.handle(node.op): [self.handle(node.left),
@@ -131,9 +130,16 @@ class AggregationParser(AstHandler):
     def handle_Div(self, node):
         return '$divide'
 
-class AggregationGroupParser(AggregationParser):
+class AggregationGroupParser(AstHandler):
     GROUP_FUNCTIONS = ['addToSet', 'push', 'first', 'last',
                        'max', 'min', 'avg', 'sum']
-for func in AggregationGroupParser.GROUP_FUNCTIONS:
-    AggregationGroupParser.FUNC_TO_ARGS[func] = 1
+    def handle_Call(self, node):
+        if len(node.args) != 1:
+            raise ParseError('The {0} group aggregation function accepts one argument'.format(node.func.id),
+                             col_offset=node.col_offset)
+        if node.func.id not in self.GROUP_FUNCTIONS:
+            raise ParseError('Unsupported group function: {0}'.format(node.func.id),
+                             col_offset=node.col_offset,
+                             options=self.GROUP_FUNCTIONS)
+        return {'$' + node.func.id: AggregationParser().handle(node.args[0])}
 
