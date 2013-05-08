@@ -40,6 +40,10 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
         self.compare('a == True', {'a': True})
         self.compare('a == False', {'a': False})
 
+    def test_none(self):
+        self.compare('a == None', {'a': None})
+        self.compare('a == null', {'a': None})
+
     def test_list(self):
         self.compare('a == [1, 2, 3]', {'a': [1, 2, 3]})
 
@@ -56,6 +60,11 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
         with self.assertRaises(pql.ParseError) as context:
             pql.find('a == foo()')
         self.assertIn('Unsupported function', str(context.exception))
+
+    def test_invalid_name(self):
+        with self.assertRaises(pql.ParseError) as context:
+            pql.find('a == foo')
+        self.assertIn('Invalid name', str(context.exception))
 
     def test_exists(self):
         self.compare('a == exists(True)', {'a': {'$exists': True}})

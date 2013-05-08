@@ -60,6 +60,7 @@ pql | mongo
 --- | -----
 a == 1 | {'a': 1}
 a == "foo" | {'a': 'foo'}
+a == None | {'a': None}
 a == True | {'a': True}
 a == False | {'a': False}
 a == [1, 2, 3] | {'a': [1, 2, 3]}

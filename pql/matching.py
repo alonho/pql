@@ -250,6 +250,15 @@ class AlgebricOperator(Operator):
 
 class Field(AstHandler):
     OP_CLASS = Operator
+
+    SPECIAL_VALUES = {'None': None,
+                      'null': None}
+    def handle_Name(self, node):
+        try:
+            return self.SPECIAL_VALUES[node.id]
+        except KeyError:
+            raise ParseError('Invalid name: {0}'.format(node.id), node.col_offset, options=list(self.SPECIAL_VALUES))
+
     def handle_operator_and_right(self, operator, right):
         return self.OP_CLASS(self).resolve(operator)(right)
 
@@ -269,10 +278,11 @@ class IntField(AlgebricField):
         return IntFunc().handle(node)
         
 class BoolField(Field):
-    def handle_Name(self, node):
-        flag = node.id
-        assert flag in ['False', 'True']
-        return flag == 'True'
+    SPECIAL_VALUES = dict(Field.SPECIAL_VALUES,
+                          **{'False': False,
+                             'True': True,
+                             'false': False,
+                             'true': True})
 
 class PrimitiveField(StringField, IntField, BoolField):
     pass

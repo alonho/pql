@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pql',
-      version='0.3.0',
+      version='0.3.1',
       description='A python expression to MongoDB query translator',
       author='Alon Horev',
       author_email='alon@horev.net',
