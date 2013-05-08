@@ -3,3 +3,5 @@
 build
 dist
 pql.egg-info
+coverage
+.tox
