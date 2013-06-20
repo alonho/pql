@@ -16,5 +16,6 @@ setup(name='pql',
       license='BSD',
       # I know it's bad practice to not specify a pymongo version, but we only
       # require the bson.ObjectId type, It's safe to assume it won't change (famous last words)
-      install_requires=['pymongo'], 
+      install_requires=['pymongo',
+                        'dateutil'], 
       packages=['pql'])

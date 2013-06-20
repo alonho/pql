@@ -20,25 +20,15 @@ currently unsupported:
 """
 import ast
 import bson
-from datetime import datetime
-FULL_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S,%f'
-DATE_AND_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-DATE_FORMAT = '%Y-%m-%d'
-DATETIME_FORMATS = [FULL_DATETIME_FORMAT,
-                    DATE_AND_TIME_FORMAT,
-                    DATE_FORMAT]
+import datetime
+import dateutil.parser
 def parse_date(node):
     if hasattr(node, 'n'): # it's a number!
-        return datetime.fromtimestamp(node.n)
-    string = node.s
-    for datetime_format in DATETIME_FORMATS:
-        try:
-            return datetime.strptime(string, datetime_format)
-        except ValueError:
-            pass
-    raise ParseError('Unexpected date format.',
-                     col_offset=node.col_offset,
-                     options=DATETIME_FORMATS)
+        return datetime.datetime.fromtimestamp(node.n)
+    try:
+        return dateutil.parser.parse(node.s)
+    except ValueError as e:
+        raise ParseError(str(e), col_offset=node.col_offset)
 
 class AstHandler(object):
 
@@ -211,7 +201,11 @@ class IdFunc(Func):
     def handle_id(self, node):
         return self.parse_arg(node, 0, IdField())
 
-class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc, IdFunc):
+class EpochFunc(Func):
+    def handle_epoch(self, node):
+        return self.parse_arg(node, 0, EpochField())
+
+class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc, IdFunc, EpochFunc):
     pass
 
 #---Operators---#
@@ -313,6 +307,14 @@ class DateTimeField(AlgebricField):
         return parse_date(node)
     def handle_Call(self, node):
         return DateTimeFunc().handle(node)
+
+class EpochField(AlgebricField):
+    def handle_Str(self, node):
+        return float(parse_date(node).strftime('%s.%f'))
+    def handle_Num(self, node):
+        return node.n
+    def handle_Call(self, node):
+        return EpochFunc().handle(node)
 
 class IdField(AlgebricField):
     def handle_Str(self, node):
