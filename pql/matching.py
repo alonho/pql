@@ -131,7 +131,9 @@ class SchemaAwareOperatorMap(OperatorMap):
         self._field_to_type = field_to_type
     def resolve_field(self, node):
         field = super(SchemaAwareOperatorMap, self).resolve_field(node)
-        if field not in self._field_to_type:
+        try:
+            self._field_to_type[field]
+        except KeyError:
             raise ParseError('Field not found: {0}.'.format(field),
                              col_offset=node.col_offset,
                              options=self._field_to_type.keys())
