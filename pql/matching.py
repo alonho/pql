@@ -22,6 +22,9 @@ import ast
 import bson
 import datetime
 import dateutil.parser
+from calendar import timegm
+
+
 def parse_date(node):
     if hasattr(node, 'n'): # it's a number!
         return datetime.datetime.fromtimestamp(node.n)
@@ -34,7 +37,7 @@ class AstHandler(object):
 
     def get_options(self):
         return [f.replace('handle_', '') for f in dir(self) if f.startswith('handle_')]
-    
+
     def resolve(self, thing):
         thing_name = thing.__class__.__name__
         try:
@@ -52,7 +55,7 @@ class AstHandler(object):
     def parse(self, string):
         ex = ast.parse(string, mode='eval')
         return self.handle(ex.body)
-        
+
 class ParseError(Exception):
     def __init__(self, message, col_offset, options=[]):
         super(ParseError, self).__init__(message)
@@ -63,7 +66,7 @@ class ParseError(Exception):
         if self.options:
             return '{0} options: {1}'.format(self.message, self.options)
         return self.message
-        
+
 class Parser(AstHandler):
     def __init__(self, operator_map):
         self._operator_map = operator_map
@@ -90,7 +93,7 @@ class Parser(AstHandler):
     def handle_Not(self, not_node):
         '''not'''
         return '$not'
-        
+
     def handle_Compare(self, compare):
         if len(compare.comparators) != 1:
             raise ParseError('Invalid number of comparators: {0}'.format(len(compare.comparators)),
@@ -107,7 +110,7 @@ class SchemaAwareParser(Parser):
     def __init__(self, *a, **k):
         super(SchemaAwareParser, self).__init__(SchemaAwareOperatorMap(*a, **k))
 
-class FieldName(AstHandler):        
+class FieldName(AstHandler):
     def handle_Name(self, name):
         return name.id
     def handle_Attribute(self, attr):
@@ -141,9 +144,9 @@ class SchemaAwareOperatorMap(OperatorMap):
 
     def resolve_type(self, field):
         return self._field_to_type[field]
-        
+
 #---Function-Handlers---#
-        
+
 class Func(AstHandler):
 
     @staticmethod
@@ -152,10 +155,10 @@ class Func(AstHandler):
             raise ParseError('Missing argument in {0}.'.format(node.func.id),
                              col_offset=node.col_offset)
         return node.args[index]
-    
+
     def parse_arg(self, node, index, field):
         return field.handle(self.get_arg(node, index))
-        
+
     def handle(self, node):
         try:
             handler = getattr(self, 'handle_' + node.func.id)
@@ -164,7 +167,7 @@ class Func(AstHandler):
                              col_offset=node.col_offset,
                              options=self.get_options())
         return handler(node)
-    
+
     def handle_exists(self, node):
         return {'$exists': self.parse_arg(node, 0, BoolField())}
 
@@ -184,7 +187,7 @@ class IntFunc(Func):
     def handle_mod(self, node):
         return {'$mod': [self.parse_arg(node, 0, IntField()),
                          self.parse_arg(node, 1, IntField())]}
-        
+
 class ListFunc(Func):
     def handle_size(self, node):
         return {'$size': self.parse_arg(node, 0, IntField())}
@@ -207,7 +210,12 @@ class EpochFunc(Func):
     def handle_epoch(self, node):
         return self.parse_arg(node, 0, EpochField())
 
-class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc, IdFunc, EpochFunc):
+class EpochUTCFunc(Func):
+    def handle_epoch_utc(self, node):
+        return self.parse_arg(node, 0, EpochUTCField())
+
+class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc,
+                  IdFunc, EpochFunc, EpochUTCFunc):
     pass
 
 #---Operators---#
@@ -222,12 +230,12 @@ class Operator(AstHandler):
         '''!='''
         return {'$ne': self.field.handle(node)}
     def handle_In(self, node):
-        '''in''' 
+        '''in'''
         return {'$in': list(map(self.field.handle, node.elts))}
     def handle_NotIn(self, node):
         '''not in'''
         return {'$nin': list(map(self.field.handle, node.elts))}
-    
+
 class AlgebricOperator(Operator):
     def handle_Gt(self, node):
         '''>'''
@@ -272,7 +280,7 @@ class IntField(AlgebricField):
         return node.n
     def handle_Call(self, node):
         return IntFunc().handle(node)
-        
+
 class BoolField(Field):
     SPECIAL_VALUES = dict(Field.SPECIAL_VALUES,
                           **{'False': False,
@@ -282,7 +290,7 @@ class BoolField(Field):
 
 class PrimitiveField(StringField, IntField, BoolField):
     pass
-        
+
 class _ListField(Field):
     def __init__(self, field=PrimitiveField()):
         self._field = field
@@ -317,6 +325,14 @@ class EpochField(AlgebricField):
         return node.n
     def handle_Call(self, node):
         return EpochFunc().handle(node)
+
+class EpochUTCField(AlgebricField):
+    def handle_Str(self, node):
+        return timegm(parse_date(node).timetuple())
+    def handle_Num(self, node):
+        return node.n
+    def handle_Call(self, node):
+        return EpochUTCFunc().handle(node)
 
 class IdField(AlgebricField):
     def handle_Str(self, node):
