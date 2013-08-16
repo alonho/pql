@@ -8,7 +8,7 @@ class BasePqlTestCase(TestCase):
     def compare(self, string, expected):
         #print string, '|', expected
         self.assertEqual(pql.find(string), expected)
-        
+
 class PqlSchemaLessTestCase(BasePqlTestCase):
 
     def test_equal_int(self):
@@ -19,7 +19,7 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
 
     def test_nested(self):
         self.compare('a.b == 1', {'a.b': 1})
-        
+
     def test_and(self):
         self.compare('a == 1 and b == 2', {'$and': [{'a': 1}, {'b': 2}]})
 
@@ -97,6 +97,10 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
     def test_epoch(self):
         self.compare('a == epoch(10)', {'a': 10})
         self.compare('a == epoch("2012")', {'a': 1340164800})
+
+    def test_epoch_utc(self):
+        self.compare('a == epoch_utc(10)', {'a': 10})
+        self.compare('a == epoch_utc("2012")', {'a': 1345075200})
 
     def test_id(self):
         self.compare('_id == id("abcdeabcdeabcdeabcdeabcd")',
