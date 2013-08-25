@@ -106,6 +106,21 @@ a == regex("foo", "i") | {'a': {'$options': 'i', '$regex': 'foo'}}
 a == size(4) | {'a': {'$size': 4}}
 a == type(3) | {'a': {'$type': 3}}
 
+Geo Queries
+-----------
+
+pql | mongo
+--- | -----
+location == geoWithin(center([1, 2], 3)) | {'location': {'$geoWithin': {'$center': [[1, 2], 3]}}}
+location == geoWithin(centerSphere([1, 2], 3)) | {'location': {'$geoWithin': {'$centerSphere': [[1, 2], 3]}}}
+location == geoIntersects(LineString([[1, 2], [3, 4]])) | {'location': {'$geoIntersects': {'$geometry': {'type': 'LineString', 'coordinates': [[1, 2], [3, 4]]}}}}
+location == geoWithin(Polygon([[1, 2], [3, 4]])) | {'location': {'$geoWithin': {'$geometry': {'type': 'Polygon', 'coordinates': [[1, 2], [3, 4]]}}}}
+location == near([1, 2], 10) | {'location': {'$maxDistance': 10, '$near': [1, 2]}}
+location == near(Point(1, 2), 10) | {'location': {'$near': {'$geometry': {'type': 'Point', 'coordinates': [1, 2]}, '$maxDistance': 10}}}
+location == nearSphere(Point(1, 2)) | {'location': {'$nearSphere': {'$geometry': {'type': 'Point', 'coordinates': [1, 2]}}}}
+location == geoWithin(box([[1, 2], [3, 4], [5, 6]])) | {'location': {'$geoWithin': {'$box': [[1, 2], [3, 4], [5, 6]]}}}
+location == geoWithin(polygon([[1, 2], [3, 4], [5, 6]])) | {'location': {'$geoWithin': {'$polygon': [[1, 2], [3, 4], [5, 6]]}}}
+
 Aggregation Queries
 ===================
 
@@ -228,6 +243,5 @@ TODO
 
 1. Generate a schema from a *mongoengine* or *mongokit* class.
 2. Add a declarative schema generation syntax.
-3. Add support for geospatial queries.
-4. Add support for $where.
+3. Add support for $where.
 

@@ -1,7 +1,9 @@
 from setuptools import setup
 
+__version__ = '0.4.1'
+
 setup(name='pql',
-      version='0.3.2',
+      version=__version__,
       description='A python expression to MongoDB query translator',
       author='Alon Horev',
       author_email='alon@horev.net',

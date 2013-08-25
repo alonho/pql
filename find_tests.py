@@ -6,7 +6,7 @@ import pql
 class BasePqlTestCase(TestCase):
 
     def compare(self, string, expected):
-        #print string, '|', expected
+        print string, '|', expected
         self.assertEqual(pql.find(string), expected)
         
 class PqlSchemaLessTestCase(BasePqlTestCase):
@@ -102,10 +102,63 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
         self.compare('_id == id("abcdeabcdeabcdeabcdeabcd")',
                      {'_id': bson.ObjectId("abcdeabcdeabcdeabcdeabcd")})
 
+    def test_near_legacy_coordinates(self):
+        self.compare('location == near([1, 2], 10)',
+                     {'location':
+                      {'$near': [1,2],
+                       '$maxDistance': 10}})
+
+    def test_near_sphere_point(self):
+        self.compare('location == nearSphere(Point(1, 2))',
+                     {'location':
+                      {'$nearSphere':
+                       {'$geometry':
+                        {'type': 'Point',
+                         'coordinates': [1, 2]}}}})
+
+    def test_near_point_with_max(self):
+        self.compare('location == near(Point(1, 2), 10)',
+                     {'location':
+                      {'$near':
+                       {'$geometry':
+                        {'type': 'Point',
+                         'coordinates': [1, 2]},
+                        '$maxDistance': 10}}})
+    
+    def test_geo_within_polygon(self):
+        self.compare('location == geoWithin(Polygon([[1, 2], [3, 4]]))',
+                     {'location':
+                      {'$geoWithin':
+                       {'$geometry':
+                        {'type': 'Polygon',
+                         'coordinates': [[1, 2], [3, 4]]}}}})
+
+    def test_geo_intersects_line_string(self):
+        self.compare('location == geoIntersects(LineString([[1, 2], [3, 4]]))',
+                     {'location':
+                      {'$geoIntersects':
+                       {'$geometry':
+                        {'type': 'LineString',
+                         'coordinates': [[1, 2], [3, 4]]}}}})
+
+    def test_center_within(self):
+        for center_type in ['center', 'centerSphere']:
+            self.compare('location == geoWithin({}([1, 2], 3))'.format(center_type),
+                         {'location':
+                          {'$geoWithin':
+                           {'$' + center_type: [[1, 2], 3]}}})
+
+    def test_polygon_and_box(self):
+        for shape in ['box', 'polygon']:
+            self.compare('location == geoWithin({}([[1, 2], [3, 4], [5, 6]]))'.format(shape),
+                         {'location':
+                          {'$geoWithin':
+                           {'$' + shape: [[1, 2], [3, 4], [5, 6]]}}})
+
 class PqlSchemaAwareTestCase(BasePqlTestCase):
 
     def compare(self, string, expected):
-        #print string, '|', expected
+        print string, '|', expected
         self.assertEqual(pql.find(string, schema={'a': pql.IntField(),
                                                   'd': pql.DateTimeField(),
                                                   'foo.bar': pql.ListField(pql.StringField())}), expected)

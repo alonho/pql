@@ -156,8 +156,9 @@ class Func(AstHandler):
                              col_offset=node.col_offset)
         return node.args[index]
 
-    def parse_arg(self, node, index, field):
-        return field.handle(self.get_arg(node, index))
+    @staticmethod
+    def parse_arg(node, index, field):
+        return field.handle(Func.get_arg(node, index))
 
     def handle(self, node):
         try:
@@ -213,9 +214,76 @@ class EpochFunc(Func):
 class EpochUTCFunc(Func):
     def handle_epoch_utc(self, node):
         return self.parse_arg(node, 0, EpochUTCField())
+        
+class GeoShapeFuncParser(Func):
+    
+    def handle_Point(self, node):
+        return {'$geometry':
+                {'type': 'Point',
+                 'coordinates': [self.parse_arg(node, 0, IntField()),
+                                                  self.parse_arg(node, 1, IntField())]}}
+
+    def handle_LineString(self, node):
+        return {'$geometry':
+                {'type': 'LineString',
+                 'coordinates': self.parse_arg(node, 0, ListField(ListField(IntField())))}}
+
+    def handle_Polygon(self, node):
+        return {'$geometry':
+                {'type': 'Polygon',
+                'coordinates': self.parse_arg(node, 0, ListField(ListField(IntField())))}}
+
+    def handle_box(self, node):
+        return {'$box': self.parse_arg(node, 0, ListField(ListField(IntField())))}
+
+    def handle_polygon(self, node):
+        return {'$polygon': self.parse_arg(node, 0, ListField(ListField(IntField())))}
+
+    def _any_center(self, node, center_name):
+        return {center_name: [self.parse_arg(node, 0, ListField(IntField())),
+                              self.parse_arg(node, 1, IntField())]}
+
+    def handle_center(self, node):
+        return self._any_center(node, '$center')
+
+    def handle_centerSphere(self, node):
+        return self._any_center(node, '$centerSphere')
+
+class GeoShapeParser(AstHandler):
+    def handle_Call(self, node):
+        return GeoShapeFuncParser().handle(node)
+    def handle_List(self, node):
+        '''
+        This is a legacy coordinate pair. consider supporting box, polygon, center, centerSphere
+        '''
+        return ListField(IntField()).handle(node)
+
+class GeoFunc(Func):
+    def _any_near(self, node, near_name):
+        shape = GeoShapeParser().handle(self.get_arg(node, 0))
+        result = bson.SON({near_name: shape}) # use SON because mongo expects the command before the arguments
+        if len(node.args) > 1:
+            distance = self.parse_arg(node, 1, IntField()) # meters
+            if isinstance(shape, list): # legacy coordinate pair
+                result['$maxDistance'] = distance
+            else:
+                shape['$maxDistance'] = distance
+        return result
+        
+    def handle_near(self, node):
+        return self._any_near(node, '$near')
+
+    def handle_nearSphere(self, node):
+        return self._any_near(node, '$nearSphere')
+
+    def handle_geoIntersects(self, node):
+        return {'$geoIntersects': GeoShapeParser().handle(self.get_arg(node, 0))}
+
+    def handle_geoWithin(self, node):
+        return {'$geoWithin': GeoShapeParser().handle(self.get_arg(node, 0))}
 
 class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc,
-                  IdFunc, EpochFunc, EpochUTCFunc):
+                  IdFunc, EpochFunc, EpochUTCFunc, GeoFunc):
     pass
 
 #---Operators---#
@@ -266,6 +334,10 @@ class Field(AstHandler):
     def handle_operator_and_right(self, operator, right):
         return self.OP_CLASS(self).resolve(operator)(right)
 
+class GeoField(Field):
+    def handle_Call(self, node):
+        return GeoFunc().handle(node)
+
 class AlgebricField(Field):
     OP_CLASS = AlgebricOperator
 
@@ -288,26 +360,19 @@ class BoolField(Field):
                              'false': False,
                              'true': True})
 
-class PrimitiveField(StringField, IntField, BoolField):
-    pass
-
-class _ListField(Field):
-    def __init__(self, field=PrimitiveField()):
+class ListField(Field):
+    def __init__(self, field=None):
         self._field = field
     def handle_List(self, node):
-        return list(map(self._field.handle, node.elts))
+        return list(map((self._field or GenericField()).handle, node.elts))
     def handle_Call(self, node):
         return ListFunc().handle(node)
-def ListField(field=PrimitiveField()):
-    class ListField(_ListField, field.__class__):
-        pass
-    return ListField(field)
 
 class DictField(Field):
-    def __init__(self, field=PrimitiveField()):
+    def __init__(self, field=None):
         self._field = field
     def handle_Dict(self, node):
-        return dict((StringField().handle(key), self._field.handle(value))
+        return dict((StringField().handle(key), (self._field or GenericField()).handle(value))
                     for key, value in zip(node.keys, node.values))
 
 class DateTimeField(AlgebricField):
@@ -340,6 +405,6 @@ class IdField(AlgebricField):
     def handle_Call(self, node):
         return IdFunc().handle(node)
 
-class GenericField(IntField, BoolField, StringField, _ListField, DictField):
+class GenericField(IntField, BoolField, StringField, ListField, DictField, GeoField):
     def handle_Call(self, node):
         return GenericFunc().handle(node)
