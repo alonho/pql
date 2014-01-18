@@ -52,6 +52,15 @@ Validates functions are called against the appropriate types:
 	Traceback (most recent call last):
 		...
 	pql.ParseError: Unsupported function (regex). options: ['date', 'exists', 'type']
+
+Referencing Fields
+------------------
+
+pql | mongo
+--- | -----
+a | a
+a.b.c | a.b.c
+"a-b" | a-b
 	
 Data Types
 ----------

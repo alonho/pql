@@ -30,8 +30,8 @@ def parse_date(node):
         return datetime.datetime.fromtimestamp(node.n)
     try:
         return dateutil.parser.parse(node.s)
-    except ValueError as e:
-        raise ParseError(str(e), col_offset=node.col_offset)
+    except Exception as e:
+        raise ParseError('Error parsing date: ' + str(e), col_offset=node.col_offset)
 
 class AstHandler(object):
 
@@ -111,6 +111,8 @@ class SchemaAwareParser(Parser):
         super(SchemaAwareParser, self).__init__(SchemaAwareOperatorMap(*a, **k))
 
 class FieldName(AstHandler):
+    def handle_Str(self, node):
+        return node.s
     def handle_Name(self, name):
         return name.id
     def handle_Attribute(self, attr):
