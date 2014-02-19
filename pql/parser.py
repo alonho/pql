@@ -1,7 +1,6 @@
 from ply import lex, yacc
 
 tokens = [
-    'FUNC',
     'EQUALS',
     'LARGER',
     'SMALLER',
@@ -106,13 +105,8 @@ def t_STRING(t):
     t.value = t.value[1:-1]
     return t
 
-def t_FUNC(t):
-    r'\S+?\('
-    t.value = t.value.replace('(', '').strip()
-    return t
-
 def t_FIELD(t):
-    r'[^$]\S*' # everything that doesn't start with a $
+    r'[^$][0-9a-zA-Z-_]+' # everything that doesn't start with a $
     return t
 
 def t_error(t):
@@ -205,7 +199,7 @@ def p_regex(p):
     p[0] = {p[1]: {'$regex': p[3]}}
 
 def p_call(p):
-    'call : FUNC RPAREN'
+    'call : FIELD list'
     import pdb;pdb.set_trace()
 
 precedence = (

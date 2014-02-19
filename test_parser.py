@@ -65,6 +65,6 @@ class TestParser(TestCase):
         self.assertEqual(parse('field ~ "foo"'),
                          {'field': {'$regex': "foo"}})
 
-    def test_call(self):
-        self.assertEqual(parse('time == now()'), {})
+    def test_all(self):
+        self.assertEqual(parse('array == all([1, 2])'), {})
         
