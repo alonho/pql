@@ -216,9 +216,9 @@ class EpochFunc(Func):
 class EpochUTCFunc(Func):
     def handle_epoch_utc(self, node):
         return self.parse_arg(node, 0, EpochUTCField())
-        
+
 class GeoShapeFuncParser(Func):
-    
+
     def handle_Point(self, node):
         return {'$geometry':
                 {'type': 'Point',
@@ -271,7 +271,7 @@ class GeoFunc(Func):
             else:
                 shape['$maxDistance'] = distance
         return result
-        
+
     def handle_near(self, node):
         return self._any_near(node, '$near')
 
@@ -301,10 +301,20 @@ class Operator(AstHandler):
         return {'$ne': self.field.handle(node)}
     def handle_In(self, node):
         '''in'''
-        return {'$in': list(map(self.field.handle, node.elts))}
+        try:
+            elts = node.elts
+        except AttributeError:
+            raise ParseError('Invalid value type for `in` operator: {0}'.format(node.__class__.__name__),
+                             col_offset=node.col_offset)
+        return {'$in': list(map(self.field.handle, elts))}
     def handle_NotIn(self, node):
         '''not in'''
-        return {'$nin': list(map(self.field.handle, node.elts))}
+        try:
+            elts = node.elts
+        except AttributeError:
+            raise ParseError('Invalid value type for `not in` operator: {0}'.format(node.__class__.__name__),
+                             col_offset=node.col_offset)
+        return {'$nin': list(map(self.field.handle, elts))}
 
 class AlgebricOperator(Operator):
     def handle_Gt(self, node):
