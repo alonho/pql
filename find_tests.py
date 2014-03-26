@@ -57,8 +57,18 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
     def test_in(self):
         self.compare('a in [1, 2, 3]', {'a': {'$in': [1, 2, 3]}})
 
+        with self.assertRaises(pql.ParseError) as context:
+            pql.find('a in (1)')
+
+        self.assertIn('Invalid value type', str(context.exception))
+
     def test_not_in(self):
         self.compare('a not in [1, 2, 3]', {'a': {'$nin': [1, 2, 3]}})
+
+        with self.assertRaises(pql.ParseError) as context:
+            pql.find('a not in (1)')
+
+        self.assertIn('Invalid value type', str(context.exception))
 
     def test_missing_func(self):
         with self.assertRaises(pql.ParseError) as context:
@@ -132,7 +142,7 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
                         {'type': 'Point',
                          'coordinates': [1, 2]},
                         '$maxDistance': 10}}})
-    
+
     def test_geo_within_polygon(self):
         self.compare('location == geoWithin(Polygon([[1, 2], [3, 4]]))',
                      {'location':
