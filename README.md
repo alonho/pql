@@ -22,7 +22,7 @@ Find Queries
 Schema-Free Example
 -------------------
 
-The schema-free parser converts python expressions to mongodb queries with no schema enforcment:
+The schema-free parser converts python expressions to mongodb queries with no schema enforcement:
 
 	>>> import pql
 	>>> pql.find("a > 1 and b == 'foo' or not c.d == False")
