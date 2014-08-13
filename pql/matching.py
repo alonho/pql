@@ -233,7 +233,7 @@ class GeoShapeFuncParser(Func):
     def handle_Polygon(self, node):
         return {'$geometry':
                 {'type': 'Polygon',
-                'coordinates': self.parse_arg(node, 0, ListField(ListField(IntField())))}}
+                'coordinates': self.parse_arg(node, 0, ListField(ListField(ListField(IntField()))))}}
 
     def handle_box(self, node):
         return {'$box': self.parse_arg(node, 0, ListField(ListField(IntField())))}

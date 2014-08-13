@@ -110,11 +110,11 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
 
     def test_epoch(self):
         self.compare('a == epoch(10)', {'a': 10})
-        self.compare('a == epoch("2012")', {'a': float(parse_date("2012").strftime('%s.%f'))})
+        self.compare('a == epoch("2012/1/1")', {'a': 1325368800})
 
     def test_epoch_utc(self):
         self.compare('a == epoch_utc(10)', {'a': 10})
-        self.compare('a == epoch_utc("2012")', {'a': 1326844800})
+        self.compare('a == epoch_utc("2012/1/1")', {'a': 1325376000})
 
     def test_id(self):
         self.compare('_id == id("abcdeabcdeabcdeabcdeabcd")',
@@ -144,12 +144,12 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
                         '$maxDistance': 10}}})
 
     def test_geo_within_polygon(self):
-        self.compare('location == geoWithin(Polygon([[1, 2], [3, 4]]))',
+        self.compare('location == geoWithin(Polygon([[[1, 2], [3, 4]]]))',
                      {'location':
                       {'$geoWithin':
                        {'$geometry':
                         {'type': 'Polygon',
-                         'coordinates': [[1, 2], [3, 4]]}}}})
+                         'coordinates': [[[1, 2], [3, 4]]]}}}})
 
     def test_geo_intersects_line_string(self):
         self.compare('location == geoIntersects(LineString([[1, 2], [3, 4]]))',
