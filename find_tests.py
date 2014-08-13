@@ -144,12 +144,13 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
                         '$maxDistance': 10}}})
 
     def test_geo_within_polygon(self):
-        self.compare('location == geoWithin(Polygon([[[1, 2], [3, 4]]]))',
+        polygon = [[1, 2], [3, 4], [5, 6]]
+        self.compare('location == geoWithin(Polygon([{}, {}]))'.format(polygon, polygon),
                      {'location':
                       {'$geoWithin':
                        {'$geometry':
                         {'type': 'Polygon',
-                         'coordinates': [[[1, 2], [3, 4]]]}}}})
+                         'coordinates': [polygon, polygon]}}}})
 
     def test_geo_intersects_line_string(self):
         self.compare('location == geoIntersects(LineString([[1, 2], [3, 4]]))',

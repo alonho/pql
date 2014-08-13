@@ -123,7 +123,7 @@ pql | mongo
 location == geoWithin(center([1, 2], 3)) | {'location': {'$geoWithin': {'$center': [[1, 2], 3]}}}
 location == geoWithin(centerSphere([1, 2], 3)) | {'location': {'$geoWithin': {'$centerSphere': [[1, 2], 3]}}}
 location == geoIntersects(LineString([[1, 2], [3, 4]])) | {'location': {'$geoIntersects': {'$geometry': {'type': 'LineString', 'coordinates': [[1, 2], [3, 4]]}}}}
-location == geoWithin(Polygon([[1, 2], [3, 4]])) | {'location': {'$geoWithin': {'$geometry': {'type': 'Polygon', 'coordinates': [[1, 2], [3, 4]]}}}}
+location == geoWithin(Polygon([[[1, 2], [3, 4], [5, 6]], [[1, 2], [3, 4], [5, 6]]])) | {'location': {'$geoWithin': {'$geometry': {'type': 'Polygon', 'coordinates': [[[1, 2], [3, 4], [5, 6]], [[1, 2], [3, 4], [5, 6]]]}}}}
 location == near([1, 2], 10) | {'location': {'$maxDistance': 10, '$near': [1, 2]}}
 location == near(Point(1, 2), 10) | {'location': {'$near': {'$geometry': {'type': 'Point', 'coordinates': [1, 2]}, '$maxDistance': 10}}}
 location == nearSphere(Point(1, 2)) | {'location': {'$nearSphere': {'$geometry': {'type': 'Point', 'coordinates': [1, 2]}}}}
