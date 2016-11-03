@@ -1,5 +1,4 @@
 from datetime import datetime
-from dateutil.parser import parse as parse_date
 from unittest import TestCase
 import bson
 import pql
@@ -7,7 +6,7 @@ import pql
 class BasePqlTestCase(TestCase):
 
     def compare(self, string, expected):
-        print string, '|', expected
+        print("{} | {}".format(string,expected))
         self.assertEqual(pql.find(string), expected)
 
 class PqlSchemaLessTestCase(BasePqlTestCase):
@@ -110,11 +109,11 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
 
     def test_epoch(self):
         self.compare('a == epoch(10)', {'a': 10})
-        self.compare('a == epoch("2012/1/1")', {'a': 1325368800})
+        self.compare('a == epoch("2012/1/1")', {'a': 1325372400.0})
 
     def test_epoch_utc(self):
         self.compare('a == epoch_utc(10)', {'a': 10})
-        self.compare('a == epoch_utc("2012/1/1")', {'a': 1325376000})
+        self.compare('a == epoch_utc("2012/1/1")', {'a': 1325376000.0})
 
     def test_id(self):
         self.compare('_id == id("abcdeabcdeabcdeabcdeabcd")',
@@ -177,7 +176,7 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
 class PqlSchemaAwareTestCase(BasePqlTestCase):
 
     def compare(self, string, expected):
-        print string, '|', expected
+        print("{} | {}".format(string,expected))
         self.assertEqual(pql.find(string, schema={'a': pql.IntField(),
                                                   'd': pql.DateTimeField(),
                                                   'foo.bar': pql.ListField(pql.StringField())}), expected)

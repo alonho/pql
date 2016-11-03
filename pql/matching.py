@@ -337,6 +337,13 @@ class Field(AstHandler):
 
     SPECIAL_VALUES = {'None': None,
                       'null': None}
+
+    def handle_NameConstant(self,node):
+        try:
+            return self.SPECIAL_VALUES[str(node.value)]
+        except KeyError:
+            raise ParseError('Invalid name: {0}'.format(node.value), node.col_offset, options=list(self.SPECIAL_VALUES))
+
     def handle_Name(self, node):
         try:
             return self.SPECIAL_VALUES[node.id]
