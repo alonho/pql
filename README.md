@@ -158,14 +158,10 @@ Lets say you have a collection of car listings:
   
  How do you get the number of cars and the sum of their prices per model per decade:
  
-    >>> collection.aggregate(project(model='model', 
-	                                made_on='year(made_on)', 
-									price='price * 3.7') | 
-    		                 match('made_on > 1975 and made_on < 1990') | 
-							 group(_id=project(model='model', 
-							                   decade='made_on - (made_on % 10)'), 
-						           count='sum(1)', 
-								   total='sum(price)'))
+    >>> collection.aggregate(project(model='model', made_on='year(made_on)', price='price * 3.7') | 
+    		         match('made_on > 1975 and made_on < 1990') | 
+				 group(_id=project(model='model', decade='made_on - (made_on % 10)'), 
+						   count='sum(1)', total='sum(price)'))
     {'ok': 1.0,
      'result': [{'_id': {'decade': 1980, 'model': 'subaru'}, 'count': 1,'total': 18.5},
 			    {'_id': {'decade': 1980, 'model': 'kia'}, 'count': 2, 'total': 40.7}]}
