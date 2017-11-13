@@ -24,7 +24,7 @@ def pipe(func):
     return decorated
 
 def _parse_value(parser, value):
-    if isinstance(value, str):
+    if isinstance(value, str) or isinstance(value, unicode):
         return parser.parse(value)
     elif isinstance(value, int):
         return value
