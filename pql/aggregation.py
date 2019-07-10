@@ -47,6 +47,9 @@ class AggregationParser(AstHandler):
     def handle_Name(self, node):
         return self.SPECIAL_VALUES.get(node.id, '$' + node.id)
 
+    def handle_NameConstant(self,node):
+        return self.SPECIAL_VALUES.get(str(node.value),node.value)
+
     def handle_Attribute(self, node):
         return '${0}.{1}'.format(self.handle(node.value), node.attr).replace('$$', '$')
 

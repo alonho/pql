@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__version__ = '0.4.3'
+__version__ = '0.5.0'
 
 setup(name='pql',
       version=__version__,
@@ -10,14 +10,13 @@ setup(name='pql',
       url='https://github.com/alonho/pql',
       classifiers = ["Development Status :: 3 - Alpha",
                      "Intended Audience :: Developers",
-                     "Programming Language :: Python :: 2.6",
-                     "Programming Language :: Python :: 2.7",
                      "Programming Language :: Python :: 3.3",
+                     "Programming Language :: Python :: 3.5",
                      "Operating System :: POSIX :: Linux",
                      "Operating System :: MacOS :: MacOS X"],
       license='BSD',
       # I know it's bad practice to not specify a pymongo version, but we only
       # require the bson.ObjectId type, It's safe to assume it won't change (famous last words)
       install_requires=['pymongo',
-                        'python-dateutil'], 
+                        'python-dateutil'],
       packages=['pql'])
