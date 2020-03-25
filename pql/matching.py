@@ -111,6 +111,8 @@ class SchemaAwareParser(Parser):
         super(SchemaAwareParser, self).__init__(SchemaAwareOperatorMap(*a, **k))
 
 class FieldName(AstHandler):
+    def handle_Constant(self, node):
+        return node.value
     def handle_Str(self, node):
         return node.s
     def handle_Name(self, name):
@@ -338,7 +340,7 @@ class Field(AstHandler):
     SPECIAL_VALUES = {'None': None,
                       'null': None}
 
-    def handle_NameConstant(self,node):
+    def handle_Constant(self, node):
         try:
             return self.SPECIAL_VALUES[str(node.value)]
         except KeyError:
@@ -365,8 +367,12 @@ class StringField(AlgebricField):
         return StringFunc().handle(node)
     def handle_Str(self, node):
         return node.s
+    def handle_Constant(self, node):
+        return node.value
 
 class IntField(AlgebricField):
+    def handle_Constant(self, node):
+        return node.value
     def handle_Num(self, node):
         return node.n
     def handle_Call(self, node):
@@ -395,6 +401,8 @@ class DictField(Field):
                     for key, value in zip(node.keys, node.values))
 
 class DateTimeField(AlgebricField):
+    def handle_Constant(self, node):
+        return parse_date(node.s)
     def handle_Str(self, node):
         return parse_date(node)
     def handle_Num(self, node):
