@@ -26,10 +26,10 @@ from calendar import timegm
 
 
 def parse_date(node):
-    if hasattr(node, 'n'): # it's a number!
+    if type(node.value) in (int, float): # it's a number!
         return datetime.datetime.fromtimestamp(node.n)
     try:
-        return dateutil.parser.parse(node.s)
+        return dateutil.parser.parse(node.value)
     except Exception as e:
         raise ParseError('Error parsing date: ' + str(e), col_offset=node.col_offset)
 
