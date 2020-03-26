@@ -402,7 +402,7 @@ class DictField(Field):
 
 class DateTimeField(AlgebricField):
     def handle_Constant(self, node):
-        return parse_date(node.s)
+        return parse_date(node.value)
     def handle_Str(self, node):
         return parse_date(node)
     def handle_Num(self, node):
@@ -411,6 +411,8 @@ class DateTimeField(AlgebricField):
         return DateTimeFunc().handle(node)
 
 class EpochField(AlgebricField):
+    def handle_Constant(self, node):
+        return float(parse_date(node).strftime('%s.%f'))
     def handle_Str(self, node):
         return float(parse_date(node).strftime('%s.%f'))
     def handle_Num(self, node):
@@ -419,6 +421,8 @@ class EpochField(AlgebricField):
         return EpochFunc().handle(node)
 
 class EpochUTCField(AlgebricField):
+    def handle_Constant(self, node):
+        return timegm(parse_date(node).timetuple())
     def handle_Str(self, node):
         return timegm(parse_date(node).timetuple())
     def handle_Num(self, node):
@@ -427,6 +431,8 @@ class EpochUTCField(AlgebricField):
         return EpochUTCFunc().handle(node)
 
 class IdField(AlgebricField):
+    def handle_Constant(self, node):
+        return bson.ObjectId(node.value)
     def handle_Str(self, node):
         return bson.ObjectId(node.s)
     def handle_Call(self, node):
