@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__version__ = '0.5.0'
+__version__ = '0.5.1'
 
 setup(name='pql',
       version=__version__,
@@ -12,6 +12,9 @@ setup(name='pql',
                      "Intended Audience :: Developers",
                      "Programming Language :: Python :: 3.3",
                      "Programming Language :: Python :: 3.5",
+                     "Programming Language :: Python :: 3.6",
+                     "Programming Language :: Python :: 3.7",
+                     "Programming Language :: Python :: 3.8",
                      "Operating System :: POSIX :: Linux",
                      "Operating System :: MacOS :: MacOS X"],
       license='BSD',
