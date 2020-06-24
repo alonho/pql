@@ -17,6 +17,15 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
     def test_equal_int(self):
         self.compare('a == 1', {'a': 1})
 
+    def test_minus(self):
+        self.compare('a == -1', {'a': -1})
+
+    def test_more_than_minus(self):
+        self.compare('a > -1', {'a': {'$gt': -1}})
+
+    def test_less_than_minus(self):
+        self.compare('a < -1', {'a': {'$lt': -1}})
+
     def test_not_equal_string(self):
         self.compare('a != "foo"', {'a': {'$ne': 'foo'}})
 
