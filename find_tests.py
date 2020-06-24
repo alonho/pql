@@ -184,6 +184,9 @@ class PqlSchemaAwareTestCase(BasePqlTestCase):
     def test_sanity(self):
         self.compare('a == 3', {'a': 3})
 
+    def test_minus(self):
+        self.compare('a == -1', {'a': -1})
+
     def test_invalid_field(self):
         with self.assertRaises(pql.ParseError) as context:
             self.compare('b == 3', None)
