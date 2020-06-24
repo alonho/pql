@@ -17,6 +17,9 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
     def test_equal_int(self):
         self.compare('a == 1', {'a': 1})
 
+    def test_plus_operator(self):
+        self.compare('a == +1', {'a': 1})
+
     def test_minus(self):
         self.compare('a == -1', {'a': -1})
 
