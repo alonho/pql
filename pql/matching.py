@@ -375,9 +375,8 @@ class IntField(AlgebricField):
         return node.value
     def handle_Num(self, node):
         return node.n
-
     def handle_UnaryOp(self, node):
-        if (node.op.__class__.__name__ == 'USub'):
+        if (type(node.op) == ast.USub):
             return - node.operand.value
         else:
             raise NotImplementedError()
