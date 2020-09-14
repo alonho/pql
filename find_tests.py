@@ -185,6 +185,10 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
                           {'$geoWithin':
                            {'$' + shape: [[1, 2], [3, 4], [5, 6]]}}})
 
+    def test_symver(self):
+        self.compare('version == symver("1.0.0 (0)")', {'version': 1000000000.0})
+
+
 class PqlSchemaAwareTestCase(BasePqlTestCase):
 
     def compare(self, string, expected):
