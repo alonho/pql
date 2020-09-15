@@ -22,6 +22,7 @@ import ast
 import bson
 import datetime
 import dateutil.parser
+import re
 from calendar import timegm
 
 
@@ -286,8 +287,12 @@ class GeoFunc(Func):
     def handle_geoWithin(self, node):
         return {'$geoWithin': GeoShapeParser().handle(self.get_arg(node, 0))}
 
+class SymverFunc(Func):
+    def handle_symver(self, node):
+        return self.parse_arg(node, 0, SymverField())
+
 class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc,
-                  IdFunc, EpochFunc, EpochUTCFunc, GeoFunc):
+                  IdFunc, EpochFunc, EpochUTCFunc, GeoFunc, SymverFunc):
     pass
 
 #---Operators---#
@@ -444,6 +449,23 @@ class IdField(AlgebricField):
         return bson.ObjectId(node.s)
     def handle_Call(self, node):
         return IdFunc().handle(node)
+
+class SymverField(AlgebricField):
+    re_version = r'(\d+)\.(\d+)\.(\d+)\s*\((\d+)\)'
+
+    def handle_Constant(self, node):
+        print(self.re_version)
+        print(node.value)
+        d = re.findall(self.re_version, node.value)[0]
+        print(d)
+        return (int(d[0]) * 1e9) + (int(d[1]) * 1e6) + (int(d[2]) * 1e3) + int(d[3])
+
+    def handle_Num(self, node):
+        d = re.findall(self.re_version, node.value)[0]
+        return (int(d[0]) * 1e9) + (int(d[1]) * 1e6) + (int(d[2]) * 1e3) + int(d[3])
+
+    def handle_Call(self, node):
+        return SymverFunc().handle(node)
 
 class GenericField(IntField, BoolField, StringField, ListField, DictField, GeoField):
     def handle_Call(self, node):
