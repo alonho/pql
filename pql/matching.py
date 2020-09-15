@@ -454,10 +454,7 @@ class SymverField(AlgebricField):
     re_version = r'(\d+)\.(\d+)\.(\d+)\s*\((\d+)\)'
 
     def handle_Constant(self, node):
-        print(self.re_version)
-        print(node.value)
         d = re.findall(self.re_version, node.value)[0]
-        print(d)
         return (int(d[0]) * 1e9) + (int(d[1]) * 1e6) + (int(d[2]) * 1e3) + int(d[3])
 
     def handle_Num(self, node):
