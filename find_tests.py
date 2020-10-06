@@ -17,6 +17,18 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
     def test_equal_int(self):
         self.compare('a == 1', {'a': 1})
 
+    def test_plus_operator(self):
+        self.compare('a == +1', {'a': 1})
+
+    def test_minus(self):
+        self.compare('a == -1', {'a': -1})
+
+    def test_more_than_minus(self):
+        self.compare('a > -1', {'a': {'$gt': -1}})
+
+    def test_less_than_minus(self):
+        self.compare('a < -1', {'a': {'$lt': -1}})
+
     def test_not_equal_string(self):
         self.compare('a != "foo"', {'a': {'$ne': 'foo'}})
 
@@ -173,6 +185,10 @@ class PqlSchemaLessTestCase(BasePqlTestCase):
                           {'$geoWithin':
                            {'$' + shape: [[1, 2], [3, 4], [5, 6]]}}})
 
+    def test_symver(self):
+        self.compare('version == symver("1.0.0 (0)")', {'version': 1000000000.0})
+
+
 class PqlSchemaAwareTestCase(BasePqlTestCase):
 
     def compare(self, string, expected):
@@ -183,6 +199,9 @@ class PqlSchemaAwareTestCase(BasePqlTestCase):
 
     def test_sanity(self):
         self.compare('a == 3', {'a': 3})
+
+    def test_minus(self):
+        self.compare('a == -1', {'a': -1})
 
     def test_invalid_field(self):
         with self.assertRaises(pql.ParseError) as context:

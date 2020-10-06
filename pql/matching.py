@@ -22,14 +22,15 @@ import ast
 import bson
 import datetime
 import dateutil.parser
+import re
 from calendar import timegm
 
 
 def parse_date(node):
-    if hasattr(node, 'n'): # it's a number!
+    if type(node.value) in (int, float): # it's a number!
         return datetime.datetime.fromtimestamp(node.n)
     try:
-        return dateutil.parser.parse(node.s)
+        return dateutil.parser.parse(node.value)
     except Exception as e:
         raise ParseError('Error parsing date: ' + str(e), col_offset=node.col_offset)
 
@@ -111,6 +112,8 @@ class SchemaAwareParser(Parser):
         super(SchemaAwareParser, self).__init__(SchemaAwareOperatorMap(*a, **k))
 
 class FieldName(AstHandler):
+    def handle_Constant(self, node):
+        return node.value
     def handle_Str(self, node):
         return node.s
     def handle_Name(self, name):
@@ -284,8 +287,12 @@ class GeoFunc(Func):
     def handle_geoWithin(self, node):
         return {'$geoWithin': GeoShapeParser().handle(self.get_arg(node, 0))}
 
+class SymverFunc(Func):
+    def handle_symver(self, node):
+        return self.parse_arg(node, 0, SymverField())
+
 class GenericFunc(StringFunc, IntFunc, ListFunc, DateTimeFunc,
-                  IdFunc, EpochFunc, EpochUTCFunc, GeoFunc):
+                  IdFunc, EpochFunc, EpochUTCFunc, GeoFunc, SymverFunc):
     pass
 
 #---Operators---#
@@ -338,7 +345,7 @@ class Field(AstHandler):
     SPECIAL_VALUES = {'None': None,
                       'null': None}
 
-    def handle_NameConstant(self,node):
+    def handle_Constant(self, node):
         try:
             return self.SPECIAL_VALUES[str(node.value)]
         except KeyError:
@@ -365,10 +372,21 @@ class StringField(AlgebricField):
         return StringFunc().handle(node)
     def handle_Str(self, node):
         return node.s
+    def handle_Constant(self, node):
+        return node.value
 
 class IntField(AlgebricField):
+    def handle_Constant(self, node):
+        return node.value
     def handle_Num(self, node):
         return node.n
+    def handle_UnaryOp(self, node):
+        op_type = type(node.op)
+        if (op_type == ast.USub):
+            return - node.operand.value
+        else:
+            return node.operand.value
+
     def handle_Call(self, node):
         return IntFunc().handle(node)
 
@@ -395,6 +413,8 @@ class DictField(Field):
                     for key, value in zip(node.keys, node.values))
 
 class DateTimeField(AlgebricField):
+    def handle_Constant(self, node):
+        return parse_date(node.value)
     def handle_Str(self, node):
         return parse_date(node)
     def handle_Num(self, node):
@@ -403,6 +423,8 @@ class DateTimeField(AlgebricField):
         return DateTimeFunc().handle(node)
 
 class EpochField(AlgebricField):
+    def handle_Constant(self, node):
+        return float(parse_date(node).strftime('%s.%f'))
     def handle_Str(self, node):
         return float(parse_date(node).strftime('%s.%f'))
     def handle_Num(self, node):
@@ -411,6 +433,8 @@ class EpochField(AlgebricField):
         return EpochFunc().handle(node)
 
 class EpochUTCField(AlgebricField):
+    def handle_Constant(self, node):
+        return timegm(parse_date(node).timetuple())
     def handle_Str(self, node):
         return timegm(parse_date(node).timetuple())
     def handle_Num(self, node):
@@ -419,10 +443,26 @@ class EpochUTCField(AlgebricField):
         return EpochUTCFunc().handle(node)
 
 class IdField(AlgebricField):
+    def handle_Constant(self, node):
+        return bson.ObjectId(node.value)
     def handle_Str(self, node):
         return bson.ObjectId(node.s)
     def handle_Call(self, node):
         return IdFunc().handle(node)
+
+class SymverField(AlgebricField):
+    re_version = r'(\d+)\.(\d+)\.(\d+)\s*\((\d+)\)'
+
+    def handle_Constant(self, node):
+        d = re.findall(self.re_version, node.value)[0]
+        return (int(d[0]) * 1e9) + (int(d[1]) * 1e6) + (int(d[2]) * 1e3) + int(d[3])
+
+    def handle_Num(self, node):
+        d = re.findall(self.re_version, node.value)[0]
+        return (int(d[0]) * 1e9) + (int(d[1]) * 1e6) + (int(d[2]) * 1e3) + int(d[3])
+
+    def handle_Call(self, node):
+        return SymverFunc().handle(node)
 
 class GenericField(IntField, BoolField, StringField, ListField, DictField, GeoField):
     def handle_Call(self, node):
