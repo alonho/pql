@@ -6,9 +6,10 @@ validate type info on specific functions
 '''
 from .matching import AstHandler, ParseError, DateTimeFunc
 
+
 class AggregationParser(AstHandler):
 
-    FUNC_TO_ARGS = {'concat': '+', # more than 1
+    FUNC_TO_ARGS = {'concat': '+',  # more than 1
                     'strcasecmp': 2,
                     'substr': 3,
                     'toLower': 1,
@@ -24,7 +25,7 @@ class AggregationParser(AstHandler):
                     'minute': 1,
                     'second': 1,
                     'millisecond': 1,
-                    
+
                     'date': 1,
 
                     'cmp': 2,
@@ -37,7 +38,7 @@ class AggregationParser(AstHandler):
                       'true': True,
                       'None': None,
                       'null': None}
-    
+
     def handle_Str(self, node):
         return node.s
 
@@ -46,9 +47,6 @@ class AggregationParser(AstHandler):
 
     def handle_Name(self, node):
         return self.SPECIAL_VALUES.get(node.id, '$' + node.id)
-
-    def handle_NameConstant(self,node):
-        return self.SPECIAL_VALUES.get(str(node.value),node.value)
 
     def handle_Attribute(self, node):
         return '${0}.{1}'.format(self.handle(node.value), node.attr).replace('$$', '$')
@@ -102,19 +100,19 @@ class AggregationParser(AstHandler):
 
     def handle_Gt(self, node):
         return '$gt'
-        
-    def handle_Lt(self,node):
+
+    def handle_Lt(self, node):
         return '$lt'
-        
+
     def handle_GtE(self, node):
         return '$gte'
-        
+
     def handle_LtE(self, node):
         return '$lte'
 
     def handle_Eq(self, node):
         return '$eq'
-        
+
     def handle_NotEq(self, node):
         return '$ne'
 
@@ -133,9 +131,11 @@ class AggregationParser(AstHandler):
     def handle_Div(self, node):
         return '$divide'
 
+
 class AggregationGroupParser(AstHandler):
     GROUP_FUNCTIONS = ['addToSet', 'push', 'first', 'last',
                        'max', 'min', 'avg', 'sum']
+
     def handle_Call(self, node):
         if len(node.args) != 1:
             raise ParseError('The {0} group aggregation function accepts one argument'.format(node.func.id),
@@ -145,4 +145,3 @@ class AggregationGroupParser(AstHandler):
                              col_offset=node.col_offset,
                              options=self.GROUP_FUNCTIONS)
         return {'$' + node.func.id: AggregationParser().handle(node.args[0])}
-
