@@ -182,6 +182,10 @@ class Parser(AstHandler):
         operator = str(compare.ops[0].__class__).split('.')[-1][:-2]
         return {COMPARE_MAGIC_STRING: {operator: [first_field, second_field]}}
 
+    def handle_Dict(self, dict_node):
+        '''Empty'''
+        return {}
+
     @staticmethod
     def attribute2str(attr: ast.Attribute) -> str:
         """
