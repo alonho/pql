@@ -369,7 +369,8 @@ class StringField(AlgebricField):
 
 class ConstantField(AlgebricField):  
     """
-    Converting constants into a string (ast parser assigns a value of "Constant" to quoted strings and constant numeric values to the right
+    Converting constants into a string 
+    (ast parser assigns a value of "Constant" to quoted strings and constant numeric values to the right
     and lef part of comparison expression(comparison operators). for handling these constants we convert this constant into a string.
     adding a ConsatntField handler class which we pass in a GenericField class)
     """
