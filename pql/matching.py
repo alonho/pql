@@ -117,6 +117,7 @@ class FieldName(AstHandler):
         return name.id
     def handle_Attribute(self, attr):
         return '{0}.{1}'.format(self.handle(attr.value), attr.attr)
+    
 
 class OperatorMap(object):
     def resolve_field(self, node):
@@ -366,6 +367,16 @@ class StringField(AlgebricField):
     def handle_Str(self, node):
         return node.s
 
+class ConstantField(AlgebricField):  
+    """
+    Converting constants into a string 
+    (ast parser assigns a value of "Constant" to quoted strings and constant numeric values to the right
+    and lef part of comparison expression(comparison operators). for handling these constants we convert this constant into a string.
+    adding a ConsatntField handler class which we pass in a GenericField class)
+    """
+    def handle_Constant(self, node):
+        return node.s        
+
 class IntField(AlgebricField):
     def handle_Num(self, node):
         return node.n
@@ -424,6 +435,6 @@ class IdField(AlgebricField):
     def handle_Call(self, node):
         return IdFunc().handle(node)
 
-class GenericField(IntField, BoolField, StringField, ListField, DictField, GeoField):
+class GenericField(IntField, BoolField, StringField, ListField, DictField, GeoField,ConstantField):
     def handle_Call(self, node):
         return GenericFunc().handle(node)
